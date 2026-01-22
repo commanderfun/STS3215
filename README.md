@@ -657,6 +657,16 @@ servo.WritePosEx(SERVO_ID, 2048, 1000, 50)
 print("✓ Moving to center position (2048)")
 ```
 
+Expected output:
+
+```
+✓ Torque disabled
+✓ Angle limits restored (0-4095)
+✓ Mode set to 0 (position control)
+✓ Torque enabled
+✓ Moving to center position (2048)
+```
+
 ---
 
 ### Step 11: Clean Shutdown
@@ -674,6 +684,17 @@ print("✓ Port closed")
 print("\n" + "="*50)
 print("TUTORIAL COMPLETE!")
 print("="*50)
+```
+
+Expected output:
+
+```
+✓ Torque disabled
+✓ Port closed
+
+==================================================
+TUTORIAL COMPLETE!
+==================================================
 ```
 
 ---
