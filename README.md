@@ -5,6 +5,7 @@ A step-by-step guide to controlling the Feetech STS3215 servo (12V 30kg torque m
 ## Table of Contents
 
 - [Hardware Requirements](#hardware-requirements)
+- [Photos](#photos)
 - [Environment Setup](#environment-setup)
 - [Register Address Reference](#register-address-reference)
 - [Tutorial Steps](#tutorial-steps)
