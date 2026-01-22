@@ -9,6 +9,7 @@ A step-by-step guide to controlling the Feetech STS3215 servo (12V 30kg torque m
 - [Environment Setup](#environment-setup)
 - [Register Address Reference](#register-address-reference)
 - [Tutorial Steps](#tutorial-steps)
+  - [Step 0: Start the Jupyter Notebook](#step-0-start-the-jupyter-notebook)
   - [Step 1: Connect Hardware and Find Serial Port](#step-1-connect-hardware-and-find-serial-port)
   - [Step 2: Connect to the Servo and Ping It](#step-2-connect-to-the-servo-and-ping-it)
   - [Step 3: Read Servo Status and Current Position](#step-3-read-servo-status-and-current-position)
@@ -65,7 +66,7 @@ conda create -n servo-tutorial python=3.11 -y
 conda activate servo-tutorial
 
 # Install packages
-conda install -c conda-forge pyserial -y
+conda install -c conda-forge pyserial jupyter -y
 pip install ftservo-python-sdk
 ```
 
@@ -77,32 +78,13 @@ uv venv --python 3.11
 source .venv/bin/activate
 
 # Install packages
-uv pip install pyserial ftservo-python-sdk
+uv pip install pyserial jupyter ftservo-python-sdk
 ```
 
 ### ⚠️ Packages to Avoid
 
 - **`feetech-servo-sdk`** - Stripped-down version lacking helper functions. Causes conflicts if installed alongside `ftservo-python-sdk`.
 - **`scservo-sdk`** - Does not exist on PyPI.
-
-### Verify Installation
-
-```python
-from scservo_sdk import sms_sts, PortHandler
-
-print("sms_sts methods available:")
-print("  WheelMode:", hasattr(sms_sts, 'WheelMode'))
-print("  WriteSpec:", hasattr(sms_sts, 'WriteSpec'))
-print("  WritePosEx:", hasattr(sms_sts, 'WritePosEx'))
-```
-
-Expected output:
-```
-sms_sts methods available:
-  WheelMode: True
-  WriteSpec: True
-  WritePosEx: True
-```
 
 ---
 
@@ -197,15 +179,48 @@ These values reset on power cycle. Used for real-time control and status.
 
 ## Tutorial Steps
 
+### Step 0: Start the Jupyter Notebook
+
+Launch Jupyter Notebook from your activated environment:
+
+```bash
+jupyter notebook
+```
+
+This will open a browser window. Create a new Python 3 notebook to follow along with the tutorial steps below.
+
+#### Verify Installation
+
+Run this in your first notebook cell to verify the SDK is installed correctly:
+
+```python
+from scservo_sdk import sms_sts, PortHandler
+
+print("sms_sts methods available:")
+print("  WheelMode:", hasattr(sms_sts, 'WheelMode'))
+print("  WriteSpec:", hasattr(sms_sts, 'WriteSpec'))
+print("  WritePosEx:", hasattr(sms_sts, 'WritePosEx'))
+```
+
+Expected output:
+```
+sms_sts methods available:
+  WheelMode: True
+  WriteSpec: True
+  WritePosEx: True
+```
+
+---
+
 ### Step 1: Connect Hardware and Find Serial Port
 
 #### Hardware Setup
 
-1. **Connect the servo to the driver board**: Plug the STS3215 servo's 4-pin cable into one of the servo ports on the Waveshare Serial Bus Servo Driver Board.
+1. **Connect the servo to the driver board**: Plug the STS3215 servo's 4-pin cable into one of the servo ports on the Waveshare Serial Bus Servo Driver Board. I used the connector on the top-left of the board.
 
-2. **Power the driver board**: Connect a 12V power supply to the driver board's power input.
+2. **Power the driver board**: Connect your 12V or 7.4V power supply to the driver board's power input. The black input on my board.
 
-3. **Connect to your Mac**: Use a USB cable to connect the Waveshare board to your Mac.
+3. **Connect to your Mac**: Use a USB cable to connect the Waveshare board to your Mac. I used a USB-C to USB-C cable.
 
 #### Find the Serial Port
 
