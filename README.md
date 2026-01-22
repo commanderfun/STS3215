@@ -35,7 +35,7 @@ A step-by-step guide to controlling the Feetech STS3215 servo (12V 30kg torque m
 
 ### Optional Hardware
 
-If you have a 3D printer it's helpful to print the [Servo Test Stand](./photos/Servo-Stand.stl) and [Paddle](./photos/Servo-Paddle.stl). You can mount the servo and driver board in the stand to keep everything supported and organized while testing.
+If you have a 3D printer it's helpful to print the [Servo Test Stand](./photos/Servo-Stand.stl) and [Paddle](./photos/Servo-Paddle.stl). You can mount the servo and driver board in the stand to keep everything supported and organized while testing. The paddle helps you see the servo's rotation while testing.
 
 ## Photos
 
@@ -181,13 +181,18 @@ These values reset on power cycle. Used for real-time control and status.
 
 ### Step 0: Start the Jupyter Notebook
 
-Launch Jupyter Notebook from your activated environment:
+Create a working directory for this tutorial and launch a Jupyter Notebook from your activated environment:
 
 ```bash
+cd ~/Documents
+mkdir servo-tutorial
+cd servo-tutorial
 jupyter notebook
 ```
 
-This will open a browser window. Create a new Python 3 notebook to follow along with the tutorial steps below.
+This will open a browser window. Choose **File > New > Notebook** to create a new Python 3 notebook and follow along with the tutorial steps below.
+
+<a href="photos/jupyter-01.png"><img src="photos/jupyter-01.png" width="600" alt="New Jupyter Notebook"></a>
 
 #### Verify Installation
 
