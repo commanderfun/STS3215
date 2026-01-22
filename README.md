@@ -80,7 +80,7 @@ source .venv/bin/activate
 uv pip install pyserial ftservo-python-sdk
 ```
 
-### Packages to Avoid
+### ⚠️ Packages to Avoid
 
 - **`feetech-servo-sdk`** - Stripped-down version lacking helper functions. Causes conflicts if installed alongside `ftservo-python-sdk`.
 - **`scservo-sdk`** - Does not exist on PyPI.
