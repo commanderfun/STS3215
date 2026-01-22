@@ -25,11 +25,32 @@ A step-by-step guide to controlling the Feetech STS3215 servo (12V 30kg torque m
 
 ## Hardware Requirements
 
-- Feetech STS3215 servo (12V 30kg torque model)
+- Feetech STS3215 servo (12V 30kg torque model) or (7.4V 19kg torque model)
 - Waveshare Serial Bus Servo Driver Board
-- 12V power supply (at least 2A recommended)
-- USB cable
+- 12V power supply (at least 2A recommended) or 7.4V power supply
+- USB-C cable
 - Mac computer
+
+### Optional Hardware
+
+If you have a 3D printer it's helpful to print the [Servo Test Stand](./photos/Servo-Stand.stl) and [Paddle](./photos/Servo-Paddle.stl). You can mount the servo and driver board in the stand to keep everything supported and organized while testing.
+
+## Photos
+
+<table>
+  <tr>
+    <td><a href="photos/STS3215-12V.jpg"><img src="photos/STS3215-12V.jpg" width="300" alt="STS3215 Servo"></a></td>
+    <td><a href="photos/waveshare-board.jpg"><img src="photos/waveshare-board.jpg" width="300" alt="Waveshare Driver Board"></a></td>
+  </tr>
+  <tr>
+    <td><a href="photos/12V-power-supply.jpg"><img src="photos/12V-power-supply.jpg" width="300" alt="12V Power Supply"></a></td>
+    <td><a href="photos/servo-stand-00.jpg"><img src="photos/servo-stand-00.jpg" width="300" alt="Servo Test Stand"></a></td>
+  </tr>
+  <tr>
+    <td><a href="photos/servo-stand-01.jpg"><img src="photos/servo-stand-01.jpg" width="300" alt="Servo Stand Assembly"></a></td>
+    <td><a href="photos/servo-stand-02.jpg"><img src="photos/servo-stand-02.jpg" width="300" alt="Servo Stand Complete"></a></td>
+  </tr>
+</table>
 
 ## Environment Setup
 
