@@ -221,13 +221,15 @@ sms_sts methods available:
 
 #### Hardware Setup
 
-1. **Connect the servo to the driver board**: Plug the STS3215 servo's 4-pin cable into one of the servo ports on the Waveshare Serial Bus Servo Driver Board. I used the connector on the top-left of the board.
+1. **Connect the servo to the driver board**: Plug the STS3215 servo's 4-pin cable into one of the two input connector's on the servo and the other end to one of the servo ports on the Waveshare Serial Bus Servo Driver Board. I used the connector on the top-left of the board. See photos above.
 
 2. **Power the driver board**: Connect your 12V or 7.4V power supply to the driver board's power input. The black input on my board.
 
-3. **Connect to your Mac**: Use a USB cable to connect the Waveshare board to your Mac. I used a USB-C to USB-C cable.
+3. **Connect to your computer**: Use a USB cable to connect the Waveshare board to your computer. I used a USB-C to USB-C cable. Depending on your computer you may need a USB-C to USB-A cable.
 
 #### Find the Serial Port
+
+Run this code in your next notebook cell.
 
 ```python
 import serial.tools.list_ports
@@ -347,7 +349,16 @@ else:
     print(f"Failed to read moving status")
 ```
 
-**Tip**: Try physically rotating the servo horn by hand and run the cell again - the position value should change! (This works because torque is currently disabled.)
+Expected output (your position, voltage and temperature may be different):
+```
+Current Position: 2048 (raw) = 180.0°
+Voltage: 12.3V
+Temperature: 33°C
+Torque Enabled: No
+Moving: No
+```
+
+**Tip**: Try physically rotating the servo horn (paddle) a little bit by hand and re-run the cell above - the position value should change! (You can rotate by hand because torque is currently disabled.) Note: It may take a little more force than expected to rotate the 12V version servo by hand. The 7.4V version will be easier.
 
 ---
 
@@ -362,11 +373,24 @@ ADDR_GOAL_POSITION = 42
 servo.write1ByteTxRx(SERVO_ID, ADDR_TORQUE_ENABLE, 1)
 print("✓ Torque enabled - servo is now holding position")
 
-# Move to center position (2048 = 180°)
+# Move to position (2048 = 180°)
+move_to = 2048
+degrees = move_to * 360 / 4096  # Convert to degrees
 # WritePosEx(ID, Position, Speed, Acceleration)
-servo.WritePosEx(SERVO_ID, 2048, 1000, 50)
-print("✓ Moving to center position (2048 = 180°)")
+servo.WritePosEx(SERVO_ID, move_to, 1000, 50)
+print(f"✓ Moving to position ({move_to} = {degrees}°)")
 ```
+
+The servo horn should move when you run the code above with the expected output below (unless it was already in the center position of 2048 = 180°).
+
+```
+✓ Torque enabled - servo is now holding position
+✓ Moving to position (2048 = 180°)
+```
+
+When torque is enabled the servo holds its position after moving and resists force up to it's rated torque value.
+
+Now try a few different values between 0 and 4095 for the move_to position and re-run the code above.
 
 **Position values to try**:
 - `0` = 0°
@@ -379,11 +403,14 @@ print("✓ Moving to center position (2048 = 180°)")
 
 ### Step 5: Control Movement Speed and Acceleration
 
+Run the code below to experiment with speed and acceleration.
+
 ```python
 # Set acceleration (0 = instant, higher = smoother ramp)
 # Set speed (higher = faster)
 
 # Move slowly with smooth acceleration
+# WritePosEx(ID, Position, Speed, Acceleration)
 servo.WritePosEx(SERVO_ID, 1024, 500, 100)  # Slow, smooth
 print("✓ Moving slowly to 90°")
 
@@ -395,7 +422,7 @@ servo.WritePosEx(SERVO_ID, 3072, 2000, 0)  # Fast, instant
 print("✓ Moving quickly to 270°")
 ```
 
-**Experiment with**:
+**Experiment with a few different values for each**:
 - `speed = 100` (very slow)
 - `speed = 1000` (medium)
 - `speed = 2000` (fast)
@@ -440,7 +467,7 @@ def read_servo_status():
 print("Moving servo and monitoring status...\n")
 
 # Start a move
-servo.WritePosEx(SERVO_ID, 3072, 500, 50)
+servo.WritePosEx(SERVO_ID, 1024, 500, 50)
 
 # Monitor for 2 seconds
 for i in range(20):
@@ -450,7 +477,7 @@ for i in range(20):
 print("\nDone!")
 ```
 
-**Tip**: While the servo is holding position, try gently pushing against the horn with your finger - you should see the load percentage increase!
+**Tip**: While the servo is holding position, try gently pushing against the horn (paddle) with your finger - you should see the load percentage increase as it encounters some resistance.
 
 ---
 
@@ -504,6 +531,19 @@ print(f"Voltage:     {voltage_raw * 0.1:.1f}V  (limits: {min_volt * 0.1:.1f}V - 
 print(f"Temperature: {temp}°C  (limit: {max_temp}°C)")
 ```
 
+Expected output if servo is healthy (yours may vary slightly):
+
+```
+=== Servo Error Status ===
+
+✓ No errors - servo is healthy!
+
+=== Current Conditions ===
+
+Voltage:     12.3V  (limits: 4.0V - 14.0V)
+Temperature: 36°C  (limit: 70°C)
+```
+
 ---
 
 ### Step 8: Disable Torque and Close the Port
@@ -513,14 +553,14 @@ ADDR_TORQUE_ENABLE = 40
 
 # Disable torque - servo will go limp
 servo.write1ByteTxRx(SERVO_ID, ADDR_TORQUE_ENABLE, 0)
-print("✓ Torque disabled - servo is now limp")
+print("✓ Torque disabled")
 
 # Close the port
 port_handler.closePort()
 print("✓ Port closed")
 ```
 
-**Important habit**: Always disable torque and close the port when you're done. This:
+**Protect your servo**: Always disable torque and close the port when you're done. This:
 - Prevents the servo from holding position and drawing current unnecessarily
 - Releases the serial port so other programs can use it
 - Allows you to safely reposition the servo by hand
@@ -535,7 +575,7 @@ Wheel mode allows the servo to rotate continuously like a motor - useful for whe
 from scservo_sdk import sms_sts, PortHandler
 
 # Reconnect to servo
-SERIAL_PORT = '/dev/cu.usbmodemXXXXX'  # Replace with your port
+# SERIAL_PORT = '/dev/cu.usbmodemXXXXX'  # Replace with your port
 BAUDRATE = 1000000
 SERVO_ID = 1
 
