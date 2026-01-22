@@ -55,21 +55,29 @@ If you have a 3D printer it's helpful to print the [Servo Test Stand](./photos/S
 
 ## Environment Setup
 
-### Create Conda Environment
+Choose either **Conda** or **uv** to set up your Python environment.
+
+### Option A: Conda
 
 ```bash
+# Create and activate environment
 conda create -n servo-tutorial python=3.11 -y
 conda activate servo-tutorial
+
+# Install packages
+conda install -c conda-forge pyserial -y
+pip install ftservo-python-sdk
 ```
 
-### Install Required Packages
+### Option B: uv
 
 ```bash
-# Install pyserial via conda
-conda install -c conda-forge pyserial -y
+# Create and activate environment
+uv venv --python 3.11
+source .venv/bin/activate
 
-# Install the Feetech SDK via pip (not available on conda)
-pip install ftservo-python-sdk
+# Install packages
+uv pip install pyserial ftservo-python-sdk
 ```
 
 ### Packages to Avoid
