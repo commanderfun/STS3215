@@ -706,10 +706,10 @@ TUTORIAL COMPLETE!
 ```python
 from scservo_sdk import sms_sts, PortHandler
 
-port_handler = PortHandler('/dev/cu.usbmodemXXXX')
+port_handler = PortHandler('/dev/cu.usbmodemXXXX') # Replace with your port
 servo = sms_sts(port_handler)
 port_handler.openPort()
-port_handler.setBaudRate(1000000)
+port_handler.setBaudRate(1000000) # 1000000 is default baud rate
 ```
 
 ### Position Control (Servo Mode)
@@ -721,7 +721,7 @@ servo.WritePosEx(SERVO_ID, position, speed, acceleration)
 # acceleration: 0-254
 ```
 
-### Continuous Rotation (Wheel Mode)
+### Continuous Rotation Mode (Wheel Mode)
 
 ```python
 servo.WheelMode(SERVO_ID)
@@ -729,7 +729,7 @@ servo.WriteSpec(SERVO_ID, speed, acceleration)
 # speed: positive=CW, negative=CCW, 0=stop
 ```
 
-### Reading Status
+### Reading Servo Status
 
 ```python
 position, result, error = servo.read2ByteTxRx(SERVO_ID, 56)  # Position
@@ -739,7 +739,7 @@ load, result, error = servo.read2ByteTxRx(SERVO_ID, 60)      # Load
 status, result, error = servo.read1ByteTxRx(SERVO_ID, 65)    # Error status
 ```
 
-### Important Habits
+### Best Practices
 
 1. Disable torque before changing EEPROM settings
 2. Always close the port when done
