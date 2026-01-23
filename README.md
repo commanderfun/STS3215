@@ -90,6 +90,8 @@ uv pip install pyserial jupyter ftservo-python-sdk
 
 ## Register Address Reference
 
+For a printable PDF, see [STS3215_Reference.pdf](./STS3215_Reference.pdf).
+
 ### EEPROM Registers (Non-Volatile)
 
 These values are saved even after power off. Torque must be disabled to write.
