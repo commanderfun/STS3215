@@ -9,7 +9,7 @@ A step-by-step guide to controlling the Feetech STS3215 servo (12V-30kg or 7.4V-
 - [Environment Setup](#environment-setup)
 - [Register Address Reference](#register-address-reference)
 - [Tutorial Steps](#tutorial-steps)
-  - [Step 0: Start the Jupyter Notebook](#step-0-start-the-jupyter-notebook)
+  - [Step 0: Start a Jupyter Notebook](#step-0-start-the-jupyter-notebook)
   - [Step 1: Connect Hardware and Find Serial Port](#step-1-connect-hardware-and-find-serial-port)
   - [Step 2: Connect to the Servo and Ping It](#step-2-connect-to-the-servo-and-ping-it)
   - [Step 3: Read Servo Status and Current Position](#step-3-read-servo-status-and-current-position)
@@ -181,7 +181,7 @@ These values reset on power cycle. Used for real-time control and status.
 
 ## Tutorial Steps
 
-### Step 0: Start the Jupyter Notebook
+### Step 0: Start a Jupyter Notebook
 
 Create a working directory for this tutorial and launch a Jupyter Notebook from your activated environment:
 
@@ -192,7 +192,7 @@ cd servo-tutorial
 jupyter notebook
 ```
 
-This will open a browser window. Choose **File > New > Notebook** to create a new Python 3 notebook and follow along with the tutorial steps below.
+This will open a browser window. Choose **File > New > Notebook** to launch a new Python 3 notebook and follow along with the tutorial steps below.
 
 <a href="photos/jupyter-01.png"><img src="photos/jupyter-01.png" width="600" alt="New Jupyter Notebook"></a>
 
@@ -219,19 +219,19 @@ sms_sts methods available:
 
 ---
 
-### Step 1: Connect Hardware and Find Serial Port
+### Step 1: Connect Your Hardware and Find Serial Port
 
 #### Hardware Setup
 
-1. **Connect the servo to the driver board**: Plug the STS3215 servo's 4-pin cable into one of the two input connector's on the servo and the other end to one of the servo ports on the Waveshare Serial Bus Servo Driver Board. I used the connector on the top-left of the board. See photos above.
+1. **Connect the servo to the driver board**: Plug the STS3215 servo's 4-pin cable into one of the two input connectors on the servo and the other end to one of the servo ports on the Waveshare Servo Driver Board. I used the connector on the top-left of the board. See photos above.
 
-2. **Power the driver board**: Connect your 12V or 7.4V power supply to the driver board's power input. The black input on my board.
+2. **Power the driver board**: Connect your 12V or 7.4V power supply to the driver board's power input.
 
 3. **Connect to your computer**: Use a USB cable to connect the Waveshare board to your computer. I used a USB-C to USB-C cable. Depending on your computer you may need a USB-C to USB-A cable.
 
 #### Find the Serial Port
 
-Run this code in your next notebook cell.
+Run this code in your next notebook cell to find the serial port of your Waveshare board.
 
 ```python
 import serial.tools.list_ports
@@ -247,23 +247,23 @@ for port in ports:
     print()
 ```
 
-Look for a port like `/dev/cu.usbmodem...` - that's your Waveshare board.
+You'll see a few available ports in the output. Look for the port with a prefix like `/dev/cu.usbmodem...` - that's your Waveshare board.
+
+Run a notebook cell to set a variable and save your serial port for use throughout the steps in this tutorial.
 
 ```python
-# Save your serial port for use throughout the tutorial
 SERIAL_PORT = '/dev/cu.usbmodemXXXXX'  # Replace with your actual port
 print(f"Using serial port: {SERIAL_PORT}")
 ```
 
 ---
 
-### Step 2: Connect to the Servo and Ping It
+### Step 2: Connect to your Servo and Ping It
 
 ```python
 from scservo_sdk import sms_sts, PortHandler
 
 # Configuration
-SERIAL_PORT = '/dev/cu.usbmodemXXXXX'  # Replace with your port
 BAUDRATE = 1000000
 SERVO_ID = 1
 
