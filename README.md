@@ -1,6 +1,6 @@
 # Feetech STS3215 Servo Tutorial
 
-A step-by-step guide to controlling the Feetech STS3215 servo (12V 30kg torque model) with Python on macOS using the Waveshare Serial Bus Servo Driver Board.
+A step-by-step guide to controlling the Feetech STS3215 servo (12V-30kg or 7.4V-19kg torque model) with Python on macOS and a Waveshare Serial Bus Servo Driver Board.
 
 ## Table of Contents
 
