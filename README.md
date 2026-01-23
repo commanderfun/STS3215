@@ -383,7 +383,7 @@ servo.WritePosEx(SERVO_ID, move_to, 1000, 50)
 print(f"✓ Moving to position ({move_to} = {degrees}°)")
 ```
 
-The servo horn should move when you run the code above with the expected output below (unless it was already in the center position of 2048 = 180°).
+The servo horn (paddle) should move when you run the code above with the expected output below (unless it was already in the center position of 2048 = 180°).
 
 ```
 ✓ Torque enabled - servo is now holding position
