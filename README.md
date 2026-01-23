@@ -90,7 +90,7 @@ uv pip install pyserial jupyter ftservo-python-sdk
 
 ## Register Address Reference
 
-For a printable PDF, see [STS3215_Reference.pdf](./STS3215_Reference.pdf).
+Printable PDF with register addresses: [STS3215_Reference.pdf](./STS3215_Reference.pdf)
 
 ### EEPROM Registers (Non-Volatile)
 
