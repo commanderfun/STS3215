@@ -749,6 +749,28 @@ status, result, error = servo.read1ByteTxRx(SERVO_ID, 65)    # Error status
 
 ---
 
+## Part 2: Using the Servo Class
+
+Ready to simplify your servo code? Continue to **[Part 2: Servo Class Tutorial](./TUTORIAL_SERVO_CLASS.md)** to learn how to use the high-level `Servo` class wrapper.
+
+The `Servo` class provides:
+- Auto-detection of serial ports
+- Simple methods like `position()`, `voltage()`, `temperature()`
+- Synchronous movement with `move_sync()` and `move_sequence()`
+- Automatic torque and mode management
+
+```python
+from servo import Servo
+
+s = Servo()
+s.ping()
+s.move_to(2048)  # Move to center
+pos, deg = s.position()
+s.disconnect()
+```
+
+---
+
 ## License
 
 This tutorial is provided as-is for educational purposes. The Feetech STS3215 servo and related SDKs are products of Feetech RC Model Co., Ltd.

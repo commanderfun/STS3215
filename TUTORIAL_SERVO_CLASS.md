@@ -1,0 +1,378 @@
+# Servo Class Tutorial (Part 2)
+
+A step-by-step guide to using the `Servo` class for simplified control of Feetech STS3215 servos.
+
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [What is the Servo Class?](#what-is-the-servo-class)
+- [Tutorial Steps](#tutorial-steps)
+  - [Step 1: Connect to a Servo](#step-1-connect-to-a-servo)
+  - [Step 2: Read Servo Status](#step-2-read-servo-status)
+  - [Step 3: Move to a Position (Async)](#step-3-move-to-a-position-async)
+  - [Step 4: Move to a Position (Sync)](#step-4-move-to-a-position-sync)
+  - [Step 5: Run a Movement Sequence](#step-5-run-a-movement-sequence)
+  - [Step 6: Read Load and Current](#step-6-read-load-and-current)
+  - [Step 7: Check Error Status](#step-7-check-error-status)
+  - [Step 8: Disconnect](#step-8-disconnect)
+- [API Reference](#api-reference)
+
+---
+
+## Prerequisites
+
+Before starting this tutorial:
+
+1. Complete [Part 1 (README.md)](./README.md) to understand the hardware setup and low-level SDK
+2. Have your servo, driver board, and power supply connected
+3. Ensure `servo.py` is in your working directory
+
+---
+
+## What is the Servo Class?
+
+The `Servo` class is a high-level wrapper around the `scservo_sdk` that simplifies common operations:
+
+| Low-Level SDK | Servo Class |
+|---------------|-------------|
+| Manual port detection | Auto-detects serial port |
+| Manual torque enable/disable | Auto-enables torque when moving |
+| Raw register reads | Named methods (`position()`, `voltage()`) |
+| Fire-and-forget moves | Synchronous moves with `move_sync()` |
+| Manual mode switching | Auto-switches modes as needed |
+
+---
+
+## Tutorial Steps
+
+### Step 1: Connect to a Servo
+
+The `Servo` class auto-detects the serial port and establishes a connection.
+
+```python
+from servo import Servo
+
+# Connect with auto-detection
+s = Servo()
+
+# Verify connection
+s.ping()
+```
+
+Expected output:
+
+```
+✓ Serial comm port: /dev/cu.usbmodem1101
+✓ Successfully pinged servo ID 1
+✓ Model number: 777
+```
+
+#### If Auto-Detection Fails
+
+If your port isn't detected automatically, find it manually:
+
+```python
+from servo import Servo
+
+# List available ports
+for port, desc in Servo.list_ports():
+    print(f"{port}: {desc}")
+```
+
+Then specify the port directly:
+
+```python
+s = Servo(port="/dev/cu.usbmodem1101")
+```
+
+#### Multiple Servos
+
+If you have multiple servos on the bus, specify the ID:
+
+```python
+s1 = Servo(servo_id=1)
+s2 = Servo(servo_id=2)
+```
+
+---
+
+### Step 2: Read Servo Status
+
+Read the servo's current state with simple method calls.
+
+```python
+# Read position (returns raw value and degrees)
+pos, deg = s.position()
+print(f"Position: {pos} raw = {deg:.1f}°")
+
+# Read voltage
+volts = s.voltage()
+print(f"Voltage: {volts:.1f}V")
+
+# Read temperature
+temp = s.temperature()
+print(f"Temperature: {temp}°C")
+
+# Check if torque is enabled
+print(f"Torque enabled: {s.torque_enabled()}")
+
+# Check if servo is moving
+print(f"Moving: {s.moving()}")
+```
+
+Expected output (values will vary):
+
+```
+Position: 2048 raw = 180.0°
+Voltage: 12.3V
+Temperature: 34°C
+Torque enabled: False
+Moving: False
+```
+
+---
+
+### Step 3: Move to a Position (Async)
+
+The `move_to()` method sends a move command and returns immediately (asynchronous).
+
+```python
+# Move to center position (2048 = 180°)
+s.move_to(2048)
+print("Move command sent!")
+
+# The servo is now moving, but Python continues immediately
+```
+
+You can also control speed and acceleration:
+
+```python
+# Move slowly with smooth acceleration
+s.move_to(1024, speed=500, acc=100)
+
+import time
+time.sleep(2)
+
+# Move quickly
+s.move_to(3072, speed=2000, acc=0)
+```
+
+**Note**: `move_to()` automatically enables torque and sets position mode if needed.
+
+---
+
+### Step 4: Move to a Position (Sync)
+
+The `move_sync()` method waits until the servo reaches the target position (synchronous).
+
+```python
+# Move and wait until complete
+final_pos = s.move_sync(1024)
+print(f"Arrived at position: {final_pos}")
+
+# Move to another position
+final_pos = s.move_sync(3072)
+print(f"Arrived at position: {final_pos}")
+```
+
+This is useful when you need to ensure one movement completes before starting another.
+
+#### Adjusting Tolerance and Timeout
+
+```python
+# Allow 20 steps of error, wait up to 5 seconds
+final_pos = s.move_sync(2048, tolerance=20, timeout=5)
+```
+
+---
+
+### Step 5: Run a Movement Sequence
+
+The `move_sequence()` method moves through a list of positions in order, waiting for each to complete.
+
+```python
+# Define a sequence of positions
+positions = [0, 1024, 2048, 3072, 4095, 2048]
+
+# Run the sequence
+print("Starting movement sequence...")
+s.move_sequence(positions)
+print("Sequence complete!")
+```
+
+This is useful for choreographed movements or testing range of motion.
+
+#### With Custom Tolerance/Timeout
+
+```python
+s.move_sequence(positions, tolerance=15, timeout=8)
+```
+
+---
+
+### Step 6: Read Load and Current
+
+Monitor the servo's load (torque) and electrical current draw.
+
+```python
+# Read current load
+load_percent, direction = s.current_load()
+print(f"Load: {load_percent:.1f}% {direction}")
+
+# Read current draw
+current_ma = s.current_draw()
+print(f"Current: {current_ma:.1f} mA")
+```
+
+**Tip**: Try gently pushing against the servo horn while reading these values - you'll see them increase as the servo resists.
+
+#### Continuous Monitoring
+
+```python
+import time
+
+print("Monitoring servo for 5 seconds...")
+print("Try pushing the servo horn!\n")
+
+for i in range(50):
+    pos, deg = s.position()
+    load, direction = s.current_load()
+    current = s.current_draw()
+
+    print(f"Pos: {deg:6.1f}° | Load: {load:5.1f}% {direction} | Current: {current:6.1f}mA")
+    time.sleep(0.1)
+```
+
+---
+
+### Step 7: Check Error Status
+
+Read the servo's error status register to check for problems.
+
+```python
+status = s.servo_status()
+
+if status == 0:
+    print("✓ No errors - servo is healthy!")
+else:
+    print(f"⚠ Error status: {status} (binary: {bin(status)})")
+
+    # Decode error bits
+    errors = {
+        0: "Voltage Error",
+        1: "Sensor Error",
+        2: "Temperature Error",
+        3: "Current Error",
+        5: "Overload Error",
+    }
+
+    for bit, name in errors.items():
+        if status & (1 << bit):
+            print(f"  ✗ {name}")
+```
+
+---
+
+### Step 8: Disconnect
+
+Always disconnect when you're done to release the servo and free the serial port.
+
+```python
+s.disconnect()
+print("✓ Disconnected")
+```
+
+This:
+- Disables torque (servo goes limp)
+- Closes the serial port
+
+---
+
+## API Reference
+
+### Constructor
+
+| Method | Description |
+|--------|-------------|
+| `Servo(servo_id=1, model="STS3215", port=None)` | Create a servo connection |
+| `Servo.list_ports()` | List available serial ports (static method) |
+
+### Status Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `ping()` | None | Verify communication, prints status |
+| `position()` | `(raw, degrees)` | Current position |
+| `voltage()` | `float` | Input voltage in volts |
+| `temperature()` | `int` | Temperature in °C |
+| `torque_enabled()` | `bool` | Whether torque is on |
+| `moving()` | `bool` | Whether servo is in motion |
+| `current_load()` | `(percent, direction)` | Load as % and "CW"/"CCW" |
+| `current_draw()` | `float` | Current in milliamps |
+| `servo_status()` | `int` | Error status bitmask |
+| `get_mode()` | `int` | Operating mode (0-3) |
+
+### Movement Methods
+
+| Method | Description |
+|--------|-------------|
+| `move_to(position, speed=0, acc=0)` | Move to position (async) |
+| `move_sync(target, tolerance=10, timeout=10)` | Move and wait (sync) |
+| `move_sequence(positions, tolerance=10, timeout=10)` | Run position sequence |
+
+### Control Methods
+
+| Method | Description |
+|--------|-------------|
+| `enable_torque()` | Enable torque (servo holds position) |
+| `set_mode(mode)` | Set operating mode |
+| `disconnect()` | Disable torque and close port |
+
+### Position Reference
+
+| Position | Degrees |
+|----------|---------|
+| 0 | 0° |
+| 1024 | 90° |
+| 2048 | 180° (center) |
+| 3072 | 270° |
+| 4095 | 360° |
+
+---
+
+## Complete Example
+
+```python
+from servo import Servo
+
+# Connect
+s = Servo()
+s.ping()
+
+# Read initial status
+pos, deg = s.position()
+print(f"\nStarting position: {deg:.1f}°")
+print(f"Voltage: {s.voltage():.1f}V")
+print(f"Temperature: {s.temperature()}°C")
+
+# Run a movement sequence
+print("\nRunning movement sequence...")
+s.move_sequence([0, 2048, 4095, 2048])
+print("Sequence complete!")
+
+# Final status
+pos, deg = s.position()
+print(f"\nFinal position: {deg:.1f}°")
+
+# Disconnect
+s.disconnect()
+print("\n✓ Done!")
+```
+
+---
+
+## Next Steps
+
+- Modify `servo.py` to add wheel mode support
+- Create a multi-servo controller for robotic arms
+- Add position interpolation for smoother movements
