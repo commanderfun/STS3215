@@ -14,7 +14,8 @@ A step-by-step guide to using the `Servo` class for simplified control of Feetec
   - [Step 5: Run a Movement Sequence](#step-5-run-a-movement-sequence)
   - [Step 6: Read Load and Current](#step-6-read-load-and-current)
   - [Step 7: Check Error Status](#step-7-check-error-status)
-  - [Step 8: Disconnect](#step-8-disconnect)
+  - [Step 8: Wheel Mode (Continuous Rotation)](#step-8-wheel-mode-continuous-rotation)
+  - [Step 9: Disconnect](#step-9-disconnect)
 - [API Reference](#api-reference)
 
 ---
@@ -130,6 +131,22 @@ Torque enabled: False
 Moving: False
 ```
 
+#### Get Everything at Once
+
+Use `status()` to get a comprehensive status dictionary in one call:
+
+```python
+info = s.status()
+
+print(f"Position: {info['position'][1]:.1f}°")
+print(f"Voltage: {info['voltage']:.1f}V")
+print(f"Temperature: {info['temperature']}°C")
+print(f"Load: {info['load'][0]:.1f}% {info['load'][1]}")
+print(f"Current: {info['current']:.1f}mA")
+print(f"Mode: {info['mode']}")
+print(f"Healthy: {info['healthy']}")
+```
+
 ---
 
 ### Step 3: Move to a Position (Async)
@@ -155,6 +172,16 @@ time.sleep(2)
 
 # Move quickly
 s.move_to(3072, speed=2000, acc=0)
+```
+
+#### Move Using Degrees
+
+If you prefer working in degrees instead of raw positions:
+
+```python
+s.move_to_degrees(90)   # Move to 90°
+s.move_to_degrees(180)  # Move to 180° (center)
+s.move_to_degrees(270)  # Move to 270°
 ```
 
 **Note**: `move_to()` automatically enables torque and sets position mode if needed.
@@ -247,33 +274,78 @@ for i in range(50):
 
 ### Step 7: Check Error Status
 
-Read the servo's error status register to check for problems.
+Use `is_healthy()` for a quick check, or `errors()` for details:
 
 ```python
-status = s.servo_status()
-
-if status == 0:
+# Quick health check
+if s.is_healthy():
     print("✓ No errors - servo is healthy!")
 else:
-    print(f"⚠ Error status: {status} (binary: {bin(status)})")
+    print(f"⚠ Errors detected: {s.errors()}")
+```
 
-    # Decode error bits
-    errors = {
-        0: "Voltage Error",
-        1: "Sensor Error",
-        2: "Temperature Error",
-        3: "Current Error",
-        5: "Overload Error",
-    }
+The `errors()` method returns a list of active error names:
 
-    for bit, name in errors.items():
-        if status & (1 << bit):
-            print(f"  ✗ {name}")
+```python
+error_list = s.errors()
+# Returns: [] if healthy
+# Returns: ["Voltage", "Temperature"] if those errors are active
+```
+
+#### Possible Errors
+
+| Error | Cause |
+|-------|-------|
+| Voltage | Input voltage too high or too low |
+| Sensor | Position sensor malfunction |
+| Temperature | Servo overheating |
+| Current | Overcurrent detected |
+| Overload | Mechanical overload/stall |
+
+---
+
+### Step 8: Wheel Mode (Continuous Rotation)
+
+Use `spin()` to rotate the servo continuously like a motor:
+
+```python
+# Spin clockwise
+s.spin(500)
+print("Spinning CW...")
+
+import time
+time.sleep(2)
+
+# Spin counter-clockwise
+s.spin(-500)
+print("Spinning CCW...")
+
+time.sleep(2)
+
+# Stop
+s.stop()
+print("Stopped")
+```
+
+The `spin()` method automatically switches to wheel mode. To return to position mode, just use any move command:
+
+```python
+# After spinning, return to position mode
+s.move_to(2048)  # Automatically switches back to position mode
+```
+
+#### Speed Control
+
+```python
+s.spin(200)       # Slow
+s.spin(1000)      # Medium
+s.spin(2000)      # Fast
+s.spin(-500, acc=50)  # With acceleration ramp
 ```
 
 ---
 
-### Step 8: Disconnect
+### Step 9: Disconnect
 
 Always disconnect when you're done to release the servo and free the serial port.
 
@@ -303,22 +375,34 @@ This:
 |--------|---------|-------------|
 | `ping()` | None | Verify communication, prints status |
 | `position()` | `(raw, degrees)` | Current position |
+| `speed()` | `int` | Current movement speed |
 | `voltage()` | `float` | Input voltage in volts |
 | `temperature()` | `int` | Temperature in °C |
 | `torque_enabled()` | `bool` | Whether torque is on |
 | `moving()` | `bool` | Whether servo is in motion |
 | `current_load()` | `(percent, direction)` | Load as % and "CW"/"CCW" |
 | `current_draw()` | `float` | Current in milliamps |
-| `servo_status()` | `int` | Error status bitmask |
+| `servo_status()` | `int` | Error status bitmask (raw) |
+| `errors()` | `list` | List of active error names |
+| `is_healthy()` | `bool` | True if no errors |
+| `status()` | `dict` | Complete status summary |
 | `get_mode()` | `int` | Operating mode (0-3) |
 
 ### Movement Methods
 
 | Method | Description |
 |--------|-------------|
-| `move_to(position, speed=0, acc=0)` | Move to position (async) |
+| `move_to(position, speed=0, acc=0)` | Move to raw position (async) |
+| `move_to_degrees(degrees, speed=0, acc=0)` | Move to degrees (async) |
 | `move_sync(target, tolerance=10, timeout=10)` | Move and wait (sync) |
 | `move_sequence(positions, tolerance=10, timeout=10)` | Run position sequence |
+
+### Wheel Mode Methods
+
+| Method | Description |
+|--------|-------------|
+| `spin(speed, acc=0)` | Spin continuously (+ = CW, - = CCW) |
+| `stop()` | Stop spinning |
 
 ### Control Methods
 
@@ -327,6 +411,13 @@ This:
 | `enable_torque()` | Enable torque (servo holds position) |
 | `set_mode(mode)` | Set operating mode |
 | `disconnect()` | Disable torque and close port |
+
+### Conversion Helpers
+
+| Method | Description |
+|--------|-------------|
+| `position_to_degrees(position)` | Convert raw position to degrees |
+| `degrees_to_position(degrees)` | Convert degrees to raw position |
 
 ### Position Reference
 
@@ -344,25 +435,45 @@ This:
 
 ```python
 from servo import Servo
+import time
 
 # Connect
 s = Servo()
 s.ping()
 
-# Read initial status
-pos, deg = s.position()
-print(f"\nStarting position: {deg:.1f}°")
-print(f"Voltage: {s.voltage():.1f}V")
-print(f"Temperature: {s.temperature()}°C")
+# Check health
+if not s.is_healthy():
+    print(f"Warning: {s.errors()}")
 
-# Run a movement sequence
+# Get full status
+info = s.status()
+print(f"\nStarting position: {info['position'][1]:.1f}°")
+print(f"Voltage: {info['voltage']:.1f}V")
+print(f"Temperature: {info['temperature']}°C")
+
+# Run a movement sequence using degrees
 print("\nRunning movement sequence...")
-s.move_sequence([0, 2048, 4095, 2048])
-print("Sequence complete!")
+s.move_to_degrees(0)
+time.sleep(1)
+s.move_to_degrees(180)
+time.sleep(1)
+s.move_to_degrees(360)
+time.sleep(1)
+
+# Try wheel mode
+print("\nTesting wheel mode...")
+s.spin(500)
+time.sleep(2)
+s.stop()
+
+# Return to position mode
+s.move_to(2048)
+time.sleep(1)
 
 # Final status
 pos, deg = s.position()
 print(f"\nFinal position: {deg:.1f}°")
+print(f"Healthy: {s.is_healthy()}")
 
 # Disconnect
 s.disconnect()
@@ -373,6 +484,6 @@ print("\n✓ Done!")
 
 ## Next Steps
 
-- Modify `servo.py` to add wheel mode support
-- Create a multi-servo controller for robotic arms
+- Create a multi-servo controller for robotic arms using `SyncWritePosEx`
 - Add position interpolation for smoother movements
+- Build a simple GUI for servo control

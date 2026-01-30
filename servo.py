@@ -64,6 +64,15 @@ class Servo:
     POSITION_MIN = 0
     POSITION_MAX = 4095
 
+    # Error flag bit definitions for servo_status register
+    ERROR_FLAGS = {
+        0: "Voltage",
+        1: "Sensor",
+        2: "Temperature",
+        3: "Current",
+        5: "Overload",
+    }
+
     _port_handler = None
     _servo = None
 
@@ -167,6 +176,18 @@ class Servo:
         """
         return position * 360 / (self.POSITION_MAX + 1)
 
+    def degrees_to_position(self, degrees):
+        """
+        Convert degrees to a raw position value.
+
+        Args:
+            degrees: Angle in degrees (0-360).
+
+        Returns:
+            int: Raw position value (0-4095).
+        """
+        return int(degrees * (self.POSITION_MAX + 1) / 360)
+
     def read1Byte(self, address):
         """
         Read a 1-byte value from a servo register.
@@ -243,6 +264,15 @@ class Servo:
         m = self.read1Byte(self.ADDR_MOVING)
         return bool(m)
 
+    def speed(self):
+        """
+        Read the current movement speed.
+
+        Returns:
+            int: Current speed in steps/second.
+        """
+        return self._servo.ReadSpeed(self.servo_id)
+
     def voltage(self):
         """
         Read the current input voltage.
@@ -276,6 +306,7 @@ class Servo:
         need to wait for the movement to complete.
 
         Automatically enables torque and sets position mode if needed.
+        Handles switching back from wheel mode by restoring angle limits.
 
         Args:
             position: Target position (0-4095, where 2048 is center).
@@ -283,16 +314,31 @@ class Servo:
             acc: Acceleration (0 = max acceleration).
         """
         if self.get_mode() != 0:
-            # Set mode back to 0 (Position servo mode)
+            # Switching from wheel/other mode back to position mode
             self.set_mode(0)
-
-        if not self.torque_enabled():
-            # Restore angle limits (0-4095 = full 360° range)
+            # Restore angle limits (wheel mode sets these to 0)
             self._servo.write2ByteTxRx(self.servo_id, self.ADDR_MIN_ANGLE_LIMIT, 0)
             self._servo.write2ByteTxRx(self.servo_id, self.ADDR_MAX_ANGLE_LIMIT, 4095)
+
+        if not self.torque_enabled():
             self.enable_torque()
 
         self._servo.WritePosEx(self.servo_id, position, speed, acc)
+
+    def move_to_degrees(self, degrees, speed=0, acc=0):
+        """
+        Move servo to a target position specified in degrees (asynchronous).
+
+        Convenience wrapper around move_to() that accepts degrees instead of
+        raw position values.
+
+        Args:
+            degrees: Target angle (0-360, where 180 is center).
+            speed: Movement speed (0 = max speed, or steps/second).
+            acc: Acceleration (0 = max acceleration).
+        """
+        position = self.degrees_to_position(degrees)
+        self.move_to(position, speed, acc)
 
     def move_sync(self, target, tolerance=10, timeout=10):
         """
@@ -391,6 +437,70 @@ class Servo:
         status_raw = self.read1Byte(self.ADDR_SERVO_STATUS)
         return status_raw
 
+    def errors(self):
+        """
+        Get a list of active error names.
+
+        Returns:
+            list: List of error name strings (e.g., ["Voltage", "Temperature"]).
+                  Empty list if no errors.
+
+        Example:
+            if s.errors():
+                print(f"Errors: {s.errors()}")
+        """
+        status = self.servo_status()
+        active_errors = []
+        for bit, name in self.ERROR_FLAGS.items():
+            if status & (1 << bit):
+                active_errors.append(name)
+        return active_errors
+
+    def is_healthy(self):
+        """
+        Check if the servo has no errors.
+
+        Returns:
+            bool: True if no errors, False if any error is active.
+        """
+        return self.servo_status() == 0
+
+    def status(self):
+        """
+        Get a comprehensive status summary.
+
+        Returns:
+            dict: Dictionary containing all status information:
+                - position: (raw, degrees)
+                - voltage: volts
+                - temperature: celsius
+                - load: (percent, direction)
+                - current: milliamps
+                - moving: bool
+                - torque_enabled: bool
+                - mode: int
+                - errors: list of error names
+                - healthy: bool
+
+        Example:
+            s = servo.status()
+            print(f"Position: {s['position'][1]:.1f}°")
+            print(f"Healthy: {s['healthy']}")
+        """
+        pos = self.read2Byte(self.ADDR_PRESENT_POSITION)
+        return {
+            "position": (pos, self.position_to_degrees(pos)),
+            "voltage": self.voltage(),
+            "temperature": self.temperature(),
+            "load": self.current_load(),
+            "current": self.current_draw(),
+            "moving": self.moving(),
+            "torque_enabled": self.torque_enabled(),
+            "mode": self.get_mode(),
+            "errors": self.errors(),
+            "healthy": self.is_healthy(),
+        }
+
     def get_mode(self):
         """
         Get the current operating mode.
@@ -411,6 +521,37 @@ class Servo:
                   2 = PWM, 3 = step servo).
         """
         self._servo.write1ByteTxRx(self.servo_id, self.ADDR_MODE, mode)
+
+    def spin(self, speed, acc=0):
+        """
+        Spin the servo continuously in wheel mode.
+
+        Automatically switches to wheel mode if not already in it.
+        Use stop() or spin(0) to stop, or move_to() to return to position mode.
+
+        Args:
+            speed: Spin speed. Positive = CW, negative = CCW, 0 = stop.
+                   Range is approximately -2000 to 2000.
+            acc: Acceleration (0 = instant, higher = smoother ramp).
+
+        Example:
+            s.spin(500)      # Spin clockwise
+            s.spin(-500)     # Spin counter-clockwise
+            s.stop()         # Stop spinning
+            s.move_to(2048)  # Return to position mode
+        """
+        if self.get_mode() != 1:
+            self._servo.WheelMode(self.servo_id)
+        self._servo.WriteSpec(self.servo_id, speed, acc)
+
+    def stop(self):
+        """
+        Stop the servo if spinning in wheel mode.
+
+        Equivalent to spin(0). The servo remains in wheel mode.
+        Use move_to() to return to position mode.
+        """
+        self._servo.WriteSpec(self.servo_id, 0, 0)
 
     def disconnect(self):
         """
