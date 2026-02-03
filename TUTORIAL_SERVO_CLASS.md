@@ -107,6 +107,11 @@ Read the servo's current state with simple method calls.
 pos, deg = s.position()
 print(f"Position: {pos} raw = {deg:.1f}°")
 
+# Read speed, direction, and acceleration
+print(f"Speed: {s.speed()} steps/sec")  # negative = CCW, positive = CW
+print(f"Direction: {s.direction()}")     # "CW", "CCW", or None
+print(f"Acceleration: {s.acceleration()}")  # 0-254, 0 = instant
+
 # Read voltage
 volts = s.voltage()
 print(f"Voltage: {volts:.1f}V")
@@ -126,6 +131,9 @@ Expected output (values will vary):
 
 ```
 Position: 2048 raw = 180.0°
+Speed: 0 steps/sec
+Direction: None
+Acceleration: 0
 Voltage: 12.3V
 Temperature: 34°C
 Torque enabled: False
@@ -140,6 +148,9 @@ Use `status()` to get a comprehensive status dictionary in one call:
 info = s.status()
 
 print(f"Position: {info['position'][1]:.1f}°")
+print(f"Speed: {info['speed']} steps/sec")
+print(f"Direction: {info['direction']}")
+print(f"Acceleration: {info['acceleration']}")
 print(f"Voltage: {info['voltage']:.1f}V")
 print(f"Temperature: {info['temperature']}°C")
 print(f"Load: {info['load'][0]:.1f}% {info['load'][1]}")
@@ -382,7 +393,9 @@ This:
 |--------|---------|-------------|
 | `ping()` | None | Verify communication, prints status |
 | `position()` | `(raw, degrees)` | Current position |
-| `speed()` | `int` | Current movement speed |
+| `speed()` | `int` | Current speed (negative = CCW, positive = CW) |
+| `direction()` | `str` or `None` | Direction: "CW", "CCW", or None if stopped |
+| `acceleration()` | `int` | Acceleration setting (0-254, 0 = instant) |
 | `voltage()` | `float` | Input voltage in volts |
 | `temperature()` | `int` | Temperature in °C |
 | `torque_enabled()` | `bool` | Whether torque is on |

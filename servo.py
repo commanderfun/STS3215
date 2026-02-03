@@ -60,6 +60,7 @@ class Servo:
     ADDR_MIN_ANGLE_LIMIT = 9
     ADDR_MAX_ANGLE_LIMIT = 11
     ADDR_MODE = 33
+    ADDR_ACCELERATION = 41
 
     POSITION_MIN = 0
     POSITION_MAX = 4095
@@ -105,7 +106,6 @@ class Servo:
                 "Use Servo.list_ports() to find available ports, "
                 "then create with Servo(port='/dev/cu.usbmodemXXXX')."
             )
-
 
     def find_port(self):
         """
@@ -268,10 +268,44 @@ class Servo:
         """
         Read the current movement speed.
 
+        The speed value is signed to indicate direction:
+        - Positive values = clockwise (CW) rotation
+        - Negative values = counter-clockwise (CCW) rotation
+        - Zero = stationary
+
         Returns:
-            int: Current speed in steps/second.
+            int: Current speed in steps/second (negative = CCW, positive = CW).
         """
-        return self._servo.ReadSpeed(self.servo_id)
+        speed, comm_result, error = self._servo.ReadSpeed(self.servo_id)
+        if comm_result != 0:
+            raise IOError(f"Communication failed for servo_id: {self.servo_id}, comm_result: {comm_result}")
+        if error != 0:
+            raise IOError(f"Servo {self.servo_id} returned error: {error}")
+        return speed
+
+    def direction(self):
+        """
+        Get the current direction of movement based on speed.
+
+        Returns:
+            str or None: "CW" (clockwise), "CCW" (counter-clockwise), or None if stopped.
+        """
+        speed = self.speed()
+        if speed > 0:
+            return "CW"
+        elif speed < 0:
+            return "CCW"
+        else:
+            return None
+
+    def acceleration(self):
+        """
+        Read the current acceleration setting.
+
+        Returns:
+            int: Acceleration value (0-254, where 0 = instant).
+        """
+        return self.read1Byte(self.ADDR_ACCELERATION)
 
     def voltage(self):
         """
@@ -400,7 +434,6 @@ class Servo:
         for target in positions:
             self.move_sync(target, tolerance, timeout)
 
-
     def current_load(self):
         """
         Read the current load/torque on the servo.
@@ -472,6 +505,9 @@ class Servo:
         Returns:
             dict: Dictionary containing all status information:
                 - position: (raw, degrees)
+                - speed: steps/second (negative = CCW, positive = CW)
+                - direction: "CW", "CCW", or None if stopped
+                - acceleration: 0-254 (0 = instant)
                 - voltage: volts
                 - temperature: celsius
                 - load: (percent, direction)
@@ -488,8 +524,12 @@ class Servo:
             print(f"Healthy: {s['healthy']}")
         """
         pos = self.read2Byte(self.ADDR_PRESENT_POSITION)
+        spd = self.speed()
         return {
             "position": (pos, self.position_to_degrees(pos)),
+            "speed": spd,
+            "direction": "CW" if spd > 0 else ("CCW" if spd < 0 else None),
+            "acceleration": self.acceleration(),
             "voltage": self.voltage(),
             "temperature": self.temperature(),
             "load": self.current_load(),

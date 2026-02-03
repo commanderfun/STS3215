@@ -40,9 +40,18 @@ pip install ftservo-python-sdk
 | Present Temperature | 63 | 1 byte | Temperature in Celsius |
 | Servo Status | 65 | 1 byte | Error bitmask |
 
+## SDK Source Code
+
+The `ftservo-python-sdk` package (which imports as `scservo_sdk`) source code is on GitHub:
+- **Repository**: https://github.com/ftservo/FTServo_Python
+- **Key file**: `scservo_sdk/sms_sts.py` contains the servo control methods like `ReadSpeed()`, `WritePosEx()`, `WheelMode()`, etc.
+- **Return pattern**: Most read methods return a tuple `(value, comm_result, error)` where `comm_result=0` means success
+
 ## Repository Contents
 
 - `README.md` - Full step-by-step tutorial with Python code examples
+- `TUTORIAL_SERVO_CLASS.md` - Part 2 tutorial using the high-level Servo class
+- `servo.py` - High-level Servo class wrapper
 - `STS3215_Reference.pdf` - Official servo documentation
 - `Servo-Stand.stl`, `Servo-Paddle.stl` - 3D printable test stand
 - `photos/` - Hardware setup reference images
