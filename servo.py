@@ -302,8 +302,13 @@ class Servo:
         """
         Read the current acceleration setting.
 
+        Note: This returns the goal/setting value, not real-time feedback.
+        Unlike position and speed which have separate "present" registers,
+        acceleration only has a setting register. The value returned is
+        whatever was last written to the servo.
+
         Returns:
-            int: Acceleration value (0-254, where 0 = instant).
+            int: Acceleration setting (0-254, where 0 = instant).
         """
         return self.read1Byte(self.ADDR_ACCELERATION)
 
@@ -331,6 +336,10 @@ class Servo:
     def enable_torque(self):
         """Enable torque so the servo holds its position."""
         self._servo.write1ByteTxRx(self.servo_id, self.ADDR_TORQUE_ENABLE, 1)
+
+    def disable_torque(self):
+        """Disable torque so the servo can be moved by hand."""
+        self._servo.write1ByteTxRx(self.servo_id, self.ADDR_TORQUE_ENABLE, 0)
 
     def move_to(self, position, speed=0, acc=0):
         """
@@ -507,7 +516,7 @@ class Servo:
                 - position: (raw, degrees)
                 - speed: steps/second (negative = CCW, positive = CW)
                 - direction: "CW", "CCW", or None if stopped
-                - acceleration: 0-254 (0 = instant)
+                - acceleration: 0-254 setting (not real-time feedback)
                 - voltage: volts
                 - temperature: celsius
                 - load: (percent, direction)
@@ -600,5 +609,5 @@ class Servo:
         Call this when done to release the servo (make it limp) and
         free the serial port.
         """
-        self._servo.write1ByteTxRx(self.servo_id, self.ADDR_TORQUE_ENABLE, 0)
+        self.disable_torque()
         self._port_handler.closePort()

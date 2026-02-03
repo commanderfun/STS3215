@@ -14,8 +14,9 @@ A step-by-step guide to using the `Servo` class for simplified control of Feetec
   - [Step 5: Run a Movement Sequence](#step-5-run-a-movement-sequence)
   - [Step 6: Read Load and Current](#step-6-read-load-and-current)
   - [Step 7: Check Error Status](#step-7-check-error-status)
-  - [Step 8: Wheel Mode (Continuous Rotation)](#step-8-wheel-mode-continuous-rotation)
-  - [Step 9: Disconnect](#step-9-disconnect)
+  - [Step 8: Manual Movement Monitoring](#step-8-manual-movement-monitoring)
+  - [Step 9: Wheel Mode (Continuous Rotation)](#step-9-wheel-mode-continuous-rotation)
+  - [Step 10: Disconnect](#step-10-disconnect)
 - [API Reference](#api-reference)
 
 ---
@@ -322,7 +323,37 @@ error_list = s.errors()
 
 ---
 
-### Step 8: Wheel Mode (Continuous Rotation)
+### Step 8: Manual Movement Monitoring
+
+Disable torque so you can rotate the servo horn by hand while monitoring position, speed, and direction in real-time.
+
+```python
+import time
+
+# Disable torque so servo can be moved by hand
+s.disable_torque()
+print("Torque disabled - rotate the servo horn by hand!\n")
+
+# Monitor for 10 seconds
+print("Monitoring for 10 seconds...\n")
+for i in range(100):
+    info = s.status()
+    pos_deg = info['position'][1]
+    speed = info['speed']
+    direction = info['direction']
+
+    dir_str = direction if direction else "stopped"
+    print(f"Position: {pos_deg:6.1f}° | Speed: {speed:5d} | Direction: {dir_str}")
+    time.sleep(0.1)
+
+print("\nDone monitoring!")
+```
+
+Try rotating the horn slowly, then quickly - you should see the speed and direction values change as you move it.
+
+---
+
+### Step 9: Wheel Mode (Continuous Rotation)
 
 Use `spin()` to rotate the servo continuously like a motor:
 
@@ -363,7 +394,7 @@ s.spin(-500, acc=50)  # With acceleration ramp
 
 ---
 
-### Step 9: Disconnect
+### Step 10: Disconnect
 
 Always disconnect when you're done to release the servo and free the serial port.
 
@@ -395,7 +426,7 @@ This:
 | `position()` | `(raw, degrees)` | Current position |
 | `speed()` | `int` | Current speed (negative = CCW, positive = CW) |
 | `direction()` | `str` or `None` | Direction: "CW", "CCW", or None if stopped |
-| `acceleration()` | `int` | Acceleration setting (0-254, 0 = instant) |
+| `acceleration()` | `int` | Acceleration setting (0-254, 0 = instant). Returns last written value, not real-time feedback. |
 | `voltage()` | `float` | Input voltage in volts |
 | `temperature()` | `int` | Temperature in °C |
 | `torque_enabled()` | `bool` | Whether torque is on |
@@ -429,6 +460,7 @@ This:
 | Method | Description |
 |--------|-------------|
 | `enable_torque()` | Enable torque (servo holds position) |
+| `disable_torque()` | Disable torque (servo can be moved by hand) |
 | `set_mode(mode)` | Set operating mode |
 | `disconnect()` | Disable torque and close port |
 

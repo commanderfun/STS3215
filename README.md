@@ -142,7 +142,7 @@ These values reset on power cycle. Used for real-time control and status.
 | Addr | Name | Size | R/W | Description |
 |------|------|------|-----|-------------|
 | 40 | Torque Enable | 1 | R/W | 0=Torque off (servo is limp), 1=Torque on (servo holds position) |
-| 41 | Acceleration | 1 | R/W | Acceleration for movement (0=instant, 1-254=slower to faster ramp) |
+| 41 | Acceleration | 1 | R/W | Goal acceleration setting (0=instant, 1-254=smoother ramp). Note: This is a setting register, not real-time feedback. |
 | 42 | Goal Position | 2 | R/W | Target position (0-4095); in motor mode this is speed/direction |
 | 44 | Goal Time | 2 | R/W | Time to reach goal position in milliseconds |
 | 46 | Goal Speed | 2 | R/W | Speed limit for movement (0=max speed, 1-4095=limited) |
@@ -168,7 +168,7 @@ These values reset on power cycle. Used for real-time control and status.
 | Set speed limit | 46 | 0-4095 | 0 = maximum speed |
 | Read position | 56 | - | Returns current position 0-4095 |
 | Read load | 60 | - | Returns load magnitude and direction |
-| Set acceleration | 41 | 0-254 | 0 = instant, higher = smoother ramp |
+| Set acceleration | 41 | 0-254 | 0 = instant, higher = smoother ramp (setting only, no real-time feedback) |
 | Motor mode | 9 & 11 | both 0 | Set min and max angle limits to 0 |
 | Servo mode | 9 & 11 | 0 & 4095 | Restore angle limits for position control |
 
