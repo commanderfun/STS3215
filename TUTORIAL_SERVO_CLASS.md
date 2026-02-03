@@ -355,18 +355,19 @@ Try rotating the horn slowly, then quickly - you should see the speed and direct
 Use `spin()` to rotate the servo continuously like a motor:
 
 ```python
-# Spin clockwise
-s.spin(500)
-print("Spinning CW...")
-
 import time
-time.sleep(2)
 
-# Spin counter-clockwise
-s.spin(-500)
-print("Spinning CCW...")
+# Spin clockwise (~2 rotations at speed 2000)
+# Speed 2000 = ~2000 steps/sec, full rotation = 4096 steps
+# 2 rotations ≈ 4 seconds
+s.spin(speed=2000)
+print("Spinning CW for ~2 rotations...")
+time.sleep(4)
 
-time.sleep(2)
+# Spin counter-clockwise (~2 rotations)
+s.spin(speed=-2000)
+print("Spinning CCW for ~2 rotations...")
+time.sleep(4)
 
 # Stop
 s.stop()
