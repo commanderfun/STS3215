@@ -414,8 +414,10 @@ Now try a few different values between 0 and 4095 for the move_to position and r
 Run the code below to experiment with speed and acceleration.
 
 ```python
-# Set acceleration (0 = instant, higher = smoother ramp)
-# Set speed (higher = faster)
+# Parameter ranges:
+#   position: 0-4095 (0°-360°, center = 2048)
+#   speed:    0-3400 (0 = max speed, otherwise steps/second)
+#   acc:      0-254  (0 = instant, higher = smoother ramp)
 
 # Move slowly with smooth acceleration
 # WritePosEx(ID, Position, Speed, Acceleration)
@@ -724,9 +726,9 @@ port_handler.setBaudRate(1000000) # 1000000 is default baud rate
 
 ```python
 servo.WritePosEx(SERVO_ID, position, speed, acceleration)
-# position: 0-4095 (0°-360°)
-# speed: steps/sec
-# acceleration: 0-254
+# position: 0-4095 (0°-360°, center = 2048)
+# speed:    0-3400 (0 = max speed, otherwise steps/second)
+# acc:      0-254  (0 = instant, higher = smoother ramp)
 ```
 
 ### Continuous Rotation Mode (Wheel Mode)

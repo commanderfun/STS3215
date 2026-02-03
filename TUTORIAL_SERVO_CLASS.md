@@ -64,7 +64,7 @@ s.ping()
 Expected output:
 
 ```
-✓ Serial comm port: /dev/cu.usbmodem1101
+✓ Serial comm port: /dev/cu.usbmodemAAA000FFCCC (yours will differ)
 ✓ Successfully pinged servo ID 1
 ✓ Model number: 777
 ```
@@ -84,7 +84,7 @@ for port, desc in Servo.list_ports():
 Then specify the port directly:
 
 ```python
-s = Servo(port="/dev/cu.usbmodem1101")
+s = Servo(port="/dev/cu.usbmodemAAA000FFCCC")
 ```
 
 #### Multiple Servos
@@ -156,6 +156,7 @@ The `move_to()` method sends a move command and returns immediately (asynchronou
 
 ```python
 # Move to center position (2048 = 180°)
+# Position range: 0-4095 (0°-360°)
 s.move_to(2048)
 print("Move command sent!")
 
@@ -165,13 +166,18 @@ print("Move command sent!")
 You can also control speed and acceleration:
 
 ```python
+# Parameter ranges:
+#   position: 0-4095 (0°-360°, center = 2048)
+#   speed:    0-3400 (0 = max speed, otherwise steps/second)
+#   acc:      0-254  (0 = instant, higher = smoother ramp)
+
 # Move slowly with smooth acceleration
 s.move_to(1024, speed=500, acc=100)
 
 import time
 time.sleep(2)
 
-# Move quickly
+# Move quickly (high speed, no acceleration ramp)
 s.move_to(3072, speed=2000, acc=0)
 ```
 
