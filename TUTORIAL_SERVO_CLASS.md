@@ -27,6 +27,7 @@ Before starting this tutorial:
 1. Complete [Part 1 (README.md)](./README.md) to understand the hardware setup and low-level SDK
 2. Have your servo, driver board, and power supply connected
 3. Ensure `servo.py` is in your working directory
+4. Set up your Python [environment](./README.md#environment-setup) and start a [Jupyter](./README.md#step-0-start-a-jupyter-notebook) Notebook as explained in Part 1.
 
 ---
 

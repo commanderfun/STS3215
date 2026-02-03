@@ -1,6 +1,6 @@
 # Feetech STS3215 Servo Tutorial (Part 1)
 
-A two-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4V-19kg torque model) with Python on macOS and a Waveshare Serial Bus Servo Driver Board.
+A two-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4V-19kg torque model) with Python and a Waveshare Serial Bus Servo Driver Board.
 
 | Part | Description |
 |------|-------------|
@@ -14,9 +14,9 @@ A two-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4V-
 - [Environment Setup](#environment-setup)
 - [Register Address Reference](#register-address-reference)
 - [Tutorial Steps](#tutorial-steps)
-  - [Step 0: Start a Jupyter Notebook](#step-0-start-the-jupyter-notebook)
-  - [Step 1: Connect Hardware and Find Serial Port](#step-1-connect-hardware-and-find-serial-port)
-  - [Step 2: Connect to the Servo and Ping It](#step-2-connect-to-the-servo-and-ping-it)
+  - [Step 0: Start a Jupyter Notebook](#step-0-start-a-jupyter-notebook)
+  - [Step 1: Connect Hardware and Find Serial Port](#step-1-connect-your-hardware-and-find-serial-port)
+  - [Step 2: Connect to your Servo and Ping It](#step-2-connect-to-your-servo-and-ping-it)
   - [Step 3: Read Servo Status and Current Position](#step-3-read-servo-status-and-current-position)
   - [Step 4: Enable Torque and Move to a Goal Position](#step-4-enable-torque-and-move-to-a-goal-position)
   - [Step 5: Control Movement Speed and Acceleration](#step-5-control-movement-speed-and-acceleration)
@@ -27,7 +27,7 @@ A two-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4V-
   - [Step 10: Switch Back to Servo Mode](#step-10-switch-back-to-servo-mode)
   - [Step 11: Clean Shutdown](#step-11-clean-shutdown)
 - [Quick Reference](#quick-reference)
-- [Part 2: Using the Servo Class](#part-2-using-the-servo-class)
+- [Part 2: Using the Servo Class](./TUTORIAL_SERVO_CLASS.md)
 
 ---
 
@@ -37,7 +37,7 @@ A two-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4V-
 - Waveshare Serial Bus Servo Driver Board
 - 12V power supply (at least 2A recommended) or 7.4V power supply
 - USB-C cable
-- Mac computer
+- Mac or PC computer
 
 ### Optional Hardware
 
