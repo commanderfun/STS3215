@@ -108,10 +108,9 @@ Read the servo's current state with simple method calls.
 pos, deg = s.position()
 print(f"Position: {pos} raw = {deg:.1f}°")
 
-# Read speed, direction, and acceleration
+# Read speed and direction
 print(f"Speed: {s.speed()} steps/sec")  # negative = CCW, positive = CW
 print(f"Direction: {s.direction()}")     # "CW", "CCW", or None
-print(f"Acceleration: {s.acceleration()}")  # 0-254, 0 = instant
 
 # Read voltage
 volts = s.voltage()
@@ -134,7 +133,6 @@ Expected output (values will vary):
 Position: 2048 raw = 180.0°
 Speed: 0 steps/sec
 Direction: None
-Acceleration: 0
 Voltage: 12.3V
 Temperature: 34°C
 Torque enabled: False
@@ -151,7 +149,6 @@ info = s.status()
 print(f"Position: {info['position'][1]:.1f}°")
 print(f"Speed: {info['speed']} steps/sec")
 print(f"Direction: {info['direction']}")
-print(f"Acceleration: {info['acceleration']}")
 print(f"Voltage: {info['voltage']:.1f}V")
 print(f"Temperature: {info['temperature']}°C")
 print(f"Load: {info['load'][0]:.1f}% {info['load'][1]}")

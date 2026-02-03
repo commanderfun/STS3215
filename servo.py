@@ -516,7 +516,6 @@ class Servo:
                 - position: (raw, degrees)
                 - speed: steps/second (negative = CCW, positive = CW)
                 - direction: "CW", "CCW", or None if stopped
-                - acceleration: 0-254 setting (not real-time feedback)
                 - voltage: volts
                 - temperature: celsius
                 - load: (percent, direction)
@@ -538,7 +537,6 @@ class Servo:
             "position": (pos, self.position_to_degrees(pos)),
             "speed": spd,
             "direction": "CW" if spd > 0 else ("CCW" if spd < 0 else None),
-            "acceleration": self.acceleration(),
             "voltage": self.voltage(),
             "temperature": self.temperature(),
             "load": self.current_load(),
