@@ -1,11 +1,12 @@
 # Feetech STS3215 Servo Tutorial (Part 1)
 
-A two-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4V-19kg torque model) with Python and a Waveshare Serial Bus Servo Driver Board.
+A multi-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4V-19kg torque model) with Python and a Waveshare Serial Bus Servo Driver Board.
 
 | Part | Description |
 |------|-------------|
 | **Part 1** (this file) | Hardware setup and low-level SDK usage |
 | **[Part 2](./TUTORIAL_SERVO_CLASS.md)** | Using the high-level `Servo` class for simplified control |
+| **[Part 3](./TUTORIAL_TELEOPERATION.md)** | Teleoperation: mirroring one servo's movement to another |
 
 ## Table of Contents
 

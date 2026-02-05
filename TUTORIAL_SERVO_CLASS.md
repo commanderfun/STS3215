@@ -534,6 +534,7 @@ print("\n✓ Done!")
 
 ## Next Steps
 
+- Continue to **[Part 3: Teleoperation](./TUTORIAL_TELEOPERATION.md)** to mirror one servo's movement to another
 - Create a multi-servo controller for robotic arms using `SyncWritePosEx`
 - Add position interpolation for smoother movements
 - Build a simple GUI for servo control
