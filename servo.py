@@ -119,11 +119,16 @@ class Servo:
         """
         ports = serial.tools.list_ports.comports()
         port = None
+        count = 0
         for p in ports:
             if "serial" in p.description.lower() and "usbmodem" in p.device.lower():
                 port = p.device
-
-        return port
+                count += 1
+        if count > 1:
+            print("Detected more than one serial port. Please specify the correct port: Servo(port=...)\n")
+            return None
+        else:
+            return port
 
     @staticmethod
     def list_ports():
