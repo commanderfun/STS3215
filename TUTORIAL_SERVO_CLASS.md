@@ -462,6 +462,13 @@ This:
 | `set_mode(mode)` | Set operating mode |
 | `disconnect()` | Disable torque and close port |
 
+### ID Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `get_id()` | `int` | Get the current servo ID (0-253) |
+| `set_id(new_id)` | None | Change the servo's ID (persists after power off) |
+
 ### Conversion Helpers
 
 | Method | Description |

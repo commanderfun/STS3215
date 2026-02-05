@@ -45,22 +45,23 @@ class Servo:
     SERIAL_PORT = None
 
     # STS3215 Register addresses
-    ADDR_PRESENT_POSITION = 56
-    ADDR_PRESENT_VOLTAGE = 62
-    ADDR_PRESENT_TEMPERATURE = 63
-    ADDR_MOVING = 66
-    ADDR_TORQUE_ENABLE = 40
-    ADDR_GOAL_POSITION = 42
-    ADDR_PRESENT_LOAD = 60
-    ADDR_PRESENT_CURRENT = 69
-    ADDR_SERVO_STATUS = 65
+    ADDR_ID = 5
+    ADDR_MIN_ANGLE_LIMIT = 9
+    ADDR_MAX_ANGLE_LIMIT = 11
     DDR_MAX_TEMP_LIMIT = 13
     ADDR_MAX_VOLTAGE_LIMIT = 14
     ADDR_MIN_VOLTAGE_LIMIT = 15
-    ADDR_MIN_ANGLE_LIMIT = 9
-    ADDR_MAX_ANGLE_LIMIT = 11
     ADDR_MODE = 33
+    ADDR_TORQUE_ENABLE = 40
     ADDR_ACCELERATION = 41
+    ADDR_GOAL_POSITION = 42
+    ADDR_PRESENT_POSITION = 56
+    ADDR_PRESENT_LOAD = 60
+    ADDR_PRESENT_VOLTAGE = 62
+    ADDR_PRESENT_TEMPERATURE = 63
+    ADDR_SERVO_STATUS = 65
+    ADDR_MOVING = 66
+    ADDR_PRESENT_CURRENT = 69
 
     POSITION_MIN = 0
     POSITION_MAX = 4095
@@ -604,6 +605,54 @@ class Servo:
         Use move_to() to return to position mode.
         """
         self._servo.WriteSpec(self.servo_id, 0, 0)
+
+    def get_id(self):
+        """
+        Get the current servo ID.
+
+        Returns:
+            int: The servo ID (0-253).
+        """
+        return self.servo_id
+
+    def set_id(self, new_id):
+        """
+        Change the servo's ID.
+
+        The new ID is written to EEPROM and persists after power off.
+        After calling this method, the Servo instance's servo_id is updated
+        to communicate with the servo at its new address.
+
+        Args:
+            new_id: New servo ID (0-253). Must be unique on the bus.
+
+        Raises:
+            ValueError: If new_id is out of range.
+            IOError: If communication fails.
+
+        Example:
+            s = Servo(servo_id=1)
+            s.set_id(2)  # Change ID from 1 to 2
+            # s.servo_id is now 2, and servo responds to ID 2
+        """
+        if not 0 <= new_id <= 253:
+            raise ValueError(f"Servo ID must be 0-253, got {new_id}")
+
+        # Disable torque before writing to EEPROM
+        was_enabled = self.torque_enabled()
+        if was_enabled:
+            self.disable_torque()
+
+        # Write new ID to EEPROM
+        self._servo.write1ByteTxRx(self.servo_id, self.ADDR_ID, new_id)
+
+        # Update instance to use new ID
+        old_id = self.servo_id
+        self.servo_id = new_id
+
+        # Restore torque state if it was enabled
+        if was_enabled:
+            self.enable_torque()
 
     def disconnect(self):
         """
