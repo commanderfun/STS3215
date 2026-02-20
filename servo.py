@@ -51,6 +51,7 @@ class Servo:
     DDR_MAX_TEMP_LIMIT = 13
     ADDR_MAX_VOLTAGE_LIMIT = 14
     ADDR_MIN_VOLTAGE_LIMIT = 15
+    ADDR_LOCK = 55
     ADDR_MODE = 33
     ADDR_TORQUE_ENABLE = 40
     ADDR_ACCELERATION = 41
@@ -608,12 +609,12 @@ class Servo:
 
     def get_id(self):
         """
-        Get the current servo ID.
+        Get the current servo ID by reading from the servo's EEPROM register.
 
         Returns:
             int: The servo ID (0-253).
         """
-        return self.servo_id
+        return self.read1Byte(self.ADDR_ID)
 
     def set_id(self, new_id):
         """
@@ -643,11 +644,20 @@ class Servo:
         if was_enabled:
             self.disable_torque()
 
-        # Write new ID to EEPROM
-        self._servo.write1ByteTxRx(self.servo_id, self.ADDR_ID, new_id)
+        # Unlock EEPROM before writing
+        self._servo.write1ByteTxRx(self.servo_id, self.ADDR_LOCK, 0)
 
-        # Update instance to use new ID
-        old_id = self.servo_id
+        # Write new ID to EEPROM
+        comm_result, error = self._servo.write1ByteTxRx(self.servo_id, self.ADDR_ID, new_id)
+        if comm_result != 0:
+            self._servo.write1ByteTxRx(self.servo_id, self.ADDR_LOCK, 1)
+            raise IOError(f"Failed to write new ID to servo {self.servo_id}, comm_result: {comm_result}")
+        if error != 0:
+            self._servo.write1ByteTxRx(self.servo_id, self.ADDR_LOCK, 1)
+            raise IOError(f"Servo {self.servo_id} returned error during ID write: {error}")
+
+        # Lock EEPROM and update instance to use new ID
+        self._servo.write1ByteTxRx(new_id, self.ADDR_LOCK, 1)
         self.servo_id = new_id
 
         # Restore torque state if it was enabled
