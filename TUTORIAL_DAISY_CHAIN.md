@@ -56,9 +56,9 @@ All servos share the same serial bus (one USB connection, one serial port). The 
 
 ## Hardware Setup
 
-### Dual Servo Test Stand
+### Dual Servo Test Stand (Optional)
 
-The photos below show a 3D printed dual servo test stand ([`Servo-Stand-Dual.stl`](./Servo-Stand-Dual.stl)) with two servo slots and a board mount. Print one and use it to keep everything organized while following this tutorial.
+The photos below show an optional 3D printed dual servo test stand ([`Servo-Stand-Dual.stl`](./Servo-Stand-Dual.stl)) with two servo slots and a board mount. If you have a 3D printer you can print one and use it to keep everything organized while following this tutorial.
 
 <table>
   <tr>
@@ -69,7 +69,7 @@ The photos below show a 3D printed dual servo test stand ([`Servo-Stand-Dual.stl
 
 ### Wiring
 
-1. **Power and connect the driver board** to your computer via USB and to your 12V or 7.4V power supply.
+1. **Power and connect the driver board** to your computer via USB and to your power supply. (12V or 7.4V depending on your servo models)
 2. **Connect the driver board to Servo 1** using a 4-pin cable into either of Servo 1's two connectors.
 3. **Connect Servo 1 to Servo 2** using a second 4-pin cable between Servo 1's remaining connector and either connector on Servo 2.
 
@@ -83,7 +83,7 @@ Both servos are now on the same serial bus.
 
 ### Step 1: Assign Unique IDs
 
-Both servos ship with the default ID of `1`. Before chaining them together, you must give one of them a different ID. **Do this with only one servo connected at a time** — if two servos with the same ID are on the bus simultaneously, they will both respond to commands and corrupt each other's replies.
+Both servos ship with a default ID set to `1`. Before daisy chaining them together, you must give one of them a different ID. ** IMPORTANT: Do this with only one servo connected at a time** — if two servos with the same ID are on the bus simultaneously, they will both try to respond to commands and corrupt each other's replies.
 
 #### Set the second servo's ID
 
@@ -92,14 +92,14 @@ Connect only the servo you want to reassign, then run:
 ```python
 from servo import Servo
 
-# Connect to the servo at its current default ID
+# First connect to the servo on its current default ID
 s = Servo(servo_id=1)
 s.ping()
 
-# Confirm its current ID
+# Checks its current ID which should be its default of 1 unless it was previously changed.
 print(f"Current ID: {s.get_id()}")
 
-# Change to ID 2 (saved to EEPROM, survives power cycles)
+# Now change to ID 2 (saved to EEPROM, survives power cycles)
 s.set_id(2)
 print(f"New ID: {s.get_id()}")
 
@@ -108,7 +108,7 @@ s.disable_torque()
 s.close_bus()
 ```
 
-**Power cycle the servo**, then verify the new ID persisted:
+**Disconnect and reconnect the power supply and USB cable to power cycle the servos and driver board**, then verify the new ID persisted:
 
 ```python
 s = Servo(servo_id=2)
@@ -123,7 +123,7 @@ You now have:
 - **Servo A**: ID=1 (default, untouched)
 - **Servo B**: ID=2 (just set)
 
-Connect both servos in the chain before continuing.
+Now connect both servos in a daisy chain configuration before continuing.
 
 ---
 
@@ -142,7 +142,7 @@ print(f"s2 port: {s2.SERIAL_PORT}")
 print(f"Same connection: {s1._port_handler is s2._port_handler}")
 ```
 
-Expected output:
+Expected output: (Your port number will differ)
 ```
 s1 port: /dev/cu.usbmodem5AE60543861
 s2 port: /dev/cu.usbmodem5AE60543861
@@ -196,7 +196,7 @@ print()
 print_status(s2, "Servo 2")
 ```
 
-**Tip**: Try rotating each servo horn by hand and re-run — the position values should change independently.
+**Tip**: Try rotating each servo horn by hand and re-run the code above — the position values should change independently.
 
 ---
 
@@ -233,6 +233,11 @@ The commands are sent sequentially over the shared bus — each takes a few mill
 ```python
 import time
 
+# Move to same starting position before coordinating movement
+s1.move_to(0)
+s2.move_to(0)
+time.sleep(2)
+
 positions = [512, 2048, 3584, 2048]  # 45°, 180°, 315°, 180°
 
 print("Synchronized sweep...")
@@ -248,6 +253,11 @@ print("Done!")
 
 ```python
 import time
+
+# Move to same starting position before movement
+s1.move_to(0)
+s2.move_to(0)
+time.sleep(2)
 
 # Move in opposite directions simultaneously
 print("Mirrored sweep...")
@@ -320,7 +330,7 @@ Always disable torque before closing the bus.
 ```python
 s1.disable_torque()
 s2.disable_torque()
-s1.close_bus()   # closes the shared connection for both
+s1.close_bus()   # closes the shared connection for both servos. s2.close_bus() does the same
 print("✓ Done")
 ```
 
@@ -328,7 +338,7 @@ print("✓ Done")
 
 ## Complete Example
 
-A full script you can run in a single notebook cell:
+Here's a full script you can run in a single notebook cell:
 
 ```python
 from servo import Servo
@@ -383,11 +393,10 @@ print("✓ Done")
 
 ---
 
-## Next Steps
+## Ideas for Next Steps
 
 With daisy chaining working, some directions to explore:
 
 - **More servos**: Add a third servo (ID=3) to the chain — no hardware changes needed, just another 4-pin cable
 - **Sync timing**: Use `move_sync()` on both servos for tighter sequential choreography
 - **Status monitoring**: Build a real-time dashboard polling both servos in a loop
-- **Wheel mode**: Run both servos as motors simultaneously for a differential drive robot
