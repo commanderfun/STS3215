@@ -272,13 +272,15 @@ print("Bidirectional teleoperation complete!")
 
 ### Step 8: Clean Shutdown
 
-Always disconnect both servos when done.
+Always disable torque and close both buses when done.
 
 ```python
-leader.disconnect()
-follower.disconnect()
+leader.disable_torque()
+follower.disable_torque()
+leader.close_bus()
+follower.close_bus()
 
-print("Both servos disconnected")
+print("Both servos shut down")
 ```
 
 ---
@@ -331,9 +333,11 @@ while time.time() - start < duration:
 
 # === Cleanup ===
 print("Teleoperation ended.")
-leader.disconnect()
-follower.disconnect()
-print("Both servos disconnected.")
+leader.disable_torque()
+follower.disable_torque()
+leader.close_bus()
+follower.close_bus()
+print("Both servos shut down.")
 ```
 
 ---

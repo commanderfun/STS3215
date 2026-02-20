@@ -16,7 +16,7 @@ A step-by-step guide to using the `Servo` class for simplified control of Feetec
   - [Step 7: Check Error Status](#step-7-check-error-status)
   - [Step 8: Manual Movement Monitoring](#step-8-manual-movement-monitoring)
   - [Step 9: Wheel Mode (Continuous Rotation)](#step-9-wheel-mode-continuous-rotation)
-  - [Step 10: Disconnect](#step-10-disconnect)
+  - [Step 10: Close Bus](#step-10-close-bus)
 - [API Reference](#api-reference)
 
 ---
@@ -392,18 +392,15 @@ s.spin(-500, acc=50)  # With acceleration ramp
 
 ---
 
-### Step 10: Disconnect
+### Step 10: Close Bus
 
-Always disconnect when you're done to release the servo and free the serial port.
+Always close the bus when you're done to free the serial port. Disable torque first if you want the servo to go limp.
 
 ```python
-s.disconnect()
-print("✓ Disconnected")
+s.disable_torque()
+s.close_bus()
+print("✓ Done")
 ```
-
-This:
-- Disables torque (servo goes limp)
-- Closes the serial port
 
 ---
 
@@ -460,7 +457,7 @@ This:
 | `enable_torque()` | Enable torque (servo holds position) |
 | `disable_torque()` | Disable torque (servo can be moved by hand) |
 | `set_mode(mode)` | Set operating mode |
-| `disconnect()` | Disable torque and close port |
+| `close_bus()` | Close the shared serial bus connection |
 
 ### ID Methods
 
@@ -532,8 +529,9 @@ pos, deg = s.position()
 print(f"\nFinal position: {deg:.1f}°")
 print(f"Healthy: {s.is_healthy()}")
 
-# Disconnect
-s.disconnect()
+# Close bus
+s.disable_torque()
+s.close_bus()
 print("\n✓ Done!")
 ```
 

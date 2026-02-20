@@ -76,12 +76,15 @@ class Servo:
         5: "Overload",
     }
 
-    _port_handler = None
-    _servo = None
+    _connections = {}  # {port_path: {'handler': PortHandler, 'servo': sms_sts}}
 
     def __init__(self, servo_id=1, model="STS3215", port=None):
         """
         Initialize connection to a servo.
+
+        Multiple Servo instances on the same serial bus (same port) share a
+        single connection automatically. Instances on different ports each get
+        their own independent connection.
 
         Args:
             servo_id: ID of the servo on the bus (default: 1).
@@ -95,19 +98,23 @@ class Servo:
         self.model = model
         self.servo_id = servo_id
         self.SERIAL_PORT = port if port else self.find_port()
-        if self.SERIAL_PORT:
-            # Initialize the comm port and servo handlers
-            self._port_handler = PortHandler(self.SERIAL_PORT)
-            if self._port_handler.openPort():
-                self._servo = sms_sts(self._port_handler)
-            else:
-                raise IOError(f"Failed to open serial comm port: {self.SERIAL_PORT}")
-        else:
+        if not self.SERIAL_PORT:
             raise IOError(
                 "Couldn't auto-detect serial port. "
                 "Use Servo.list_ports() to find available ports, "
                 "then create with Servo(port='/dev/cu.usbmodemXXXX')."
             )
+        if self.SERIAL_PORT not in Servo._connections:
+            handler = PortHandler(self.SERIAL_PORT)
+            if handler.openPort():
+                Servo._connections[self.SERIAL_PORT] = {
+                    "handler": handler,
+                    "servo": sms_sts(handler),
+                }
+            else:
+                raise IOError(f"Failed to open serial comm port: {self.SERIAL_PORT}")
+        self._port_handler = Servo._connections[self.SERIAL_PORT]["handler"]
+        self._servo = Servo._connections[self.SERIAL_PORT]["servo"]
 
     def find_port(self):
         """
@@ -664,12 +671,21 @@ class Servo:
         if was_enabled:
             self.enable_torque()
 
-    def disconnect(self):
+    def close_bus(self):
         """
-        Disable torque and close the serial connection.
+        Close the serial bus connection for this servo's port.
 
-        Call this when done to release the servo (make it limp) and
-        free the serial port.
+        Closes the shared serial connection and frees the port so other
+        programs can use it. Since the connection is shared, this affects
+        all Servo instances on the same port.
+
+        Disable torque on each servo individually before calling this if
+        you want the servos to go limp:
+
+            s1.disable_torque()
+            s2.disable_torque()
+            s1.close_bus()  # s2.close_bus() would also work
         """
-        self.disable_torque()
-        self._port_handler.closePort()
+        if self.SERIAL_PORT in Servo._connections:
+            Servo._connections[self.SERIAL_PORT]["handler"].closePort()
+            del Servo._connections[self.SERIAL_PORT]

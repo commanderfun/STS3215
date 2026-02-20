@@ -775,7 +775,8 @@ s = Servo()
 s.ping()
 s.move_to(2048)  # Move to center
 pos, deg = s.position()
-s.disconnect()
+s.disable_torque()
+s.close_bus()
 ```
 
 ---
