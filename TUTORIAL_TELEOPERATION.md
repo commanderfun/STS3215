@@ -244,7 +244,19 @@ follower_load, _ = follower.current_load()
 print(f"Idle load — leader: {leader_load:.1f}%  follower: {follower_load:.1f}%")
 ```
 
-Set `LOAD_THRESHOLD` a few percent above those idle values.
+Then push firmly against the leader while this loop runs to see your peak push values:
+
+```python
+import time
+
+print("Push against the leader servo and watch the load...")
+for _ in range(50):
+    load, direction = leader.current_load()
+    print(f"  load: {load:.1f}%  direction: {direction}")
+    time.sleep(0.1)
+```
+
+Set `LOAD_THRESHOLD` just above your observed idle floor — typically 3–6% works well.
 
 ```python
 import time
