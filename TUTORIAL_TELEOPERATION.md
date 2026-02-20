@@ -344,4 +344,4 @@ print("Both servos shut down.")
 
 ## Next Steps
 
-- Create part 4 of this tutorial about daisy chaining 2 servos and conrolling with one board.
+Continue to **[Part 4: Daisy Chain Tutorial](./TUTORIAL_DAISY_CHAIN.md)** to learn how to control multiple servos from a single driver board using one serial connection.

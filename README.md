@@ -7,6 +7,7 @@ A multi-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4
 | **Part 1** (this file) | Hardware setup and low-level SDK usage |
 | **[Part 2](./TUTORIAL_SERVO_CLASS.md)** | Using the high-level `Servo` class for simplified control |
 | **[Part 3](./TUTORIAL_TELEOPERATION.md)** | Teleoperation: mirroring one servo's movement to another |
+| **[Part 4](./TUTORIAL_DAISY_CHAIN.md)** | Daisy chaining: controlling multiple servos from one board |
 
 ## Table of Contents
 
