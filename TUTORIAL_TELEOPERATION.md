@@ -340,7 +340,4 @@ print("Both servos disconnected.")
 
 ## Next Steps
 
-- Add force feedback by reading the follower's load and applying resistance to the leader
-- Implement position recording and playback
-- Scale or invert the position mapping (e.g., follower moves opposite direction)
-- Add multiple follower servos for synchronized multi-joint control
+- Create part 4 of this tutorial about daisy chaining 2 servos and conrolling with one board.
