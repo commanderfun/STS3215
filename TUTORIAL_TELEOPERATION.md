@@ -225,62 +225,102 @@ The follower now matches both the position and speed of the leader, resulting in
 
 ### Step 7: Bidirectional Teleoperation
 
-For bidirectional control, either servo can be the leader. This example swaps roles based on which servo is being moved.
+For bidirectional control, either servo can be the leader. This example uses a three-state approach:
+
+1. **Locked** — both servos hold position with torque on, acting as force sensors
+2. **Active** — the pushed servo is released to move freely; the other mirrors it
+3. **Re-lock** — once movement stops, both servos hold the new position
+
+Detecting a push *while torque is on* is reliable because the motor actively resists the force, producing a clear load signal. This is more robust than sensing on a limp servo.
+
+**Calibration tip**: before running the loop, check both servos' idle holding load to find a safe threshold. Torque must be **enabled** for this reading to be meaningful — a limp servo will read near zero regardless of position:
+
+```python
+leader.enable_torque()
+follower.enable_torque()
+
+leader_load,   _ = leader.current_load()
+follower_load, _ = follower.current_load()
+print(f"Idle load — leader: {leader_load:.1f}%  follower: {follower_load:.1f}%")
+```
+
+Set `LOAD_THRESHOLD` a few percent above those idle values.
 
 ```python
 import time
 
-# Disable torque on both servos initially
-leader.disable_torque()
-follower.disable_torque()
+# These three values are the main tuning knobs — small changes can make a big
+# difference, so experiment until the feel is right for your setup.
+
+# Load (%) against a holding servo that signals an intentional push.
+# Run the calibration check above first. Idle typically reads 0-3% depending
+# on joint angle; set this just above your observed floor.
+LOAD_THRESHOLD = 3.0
+
+# Speed (steps/sec) below which the active servo is considered stopped.
+IDLE_SPEED = 20
+
+# Seconds of no movement before both servos re-lock.
+# Lower = snappier re-lock; higher = more forgiving during slow movements.
+SETTLE_TIME = 0.15
+
+# Start with both servos holding position
+leader.enable_torque()
+follower.enable_torque()
 
 print("Bidirectional teleoperation")
-print("Move either servo - the other will follow!")
+print("Push against either servo — it will release and the other will mirror!")
 
-# Speed threshold to detect intentional movement
-SPEED_THRESHOLD = 50
-# Speed below which a settled motorized servo is released back to limp
-IDLE_THRESHOLD = 20
+active     = None          # 'leader', 'follower', or None (locked)
+last_moved = time.time()
 
 duration = 30
 start = time.time()
 
 while time.time() - start < duration:
-    # Read both servos
     leader_info   = leader.status()
     follower_info = follower.status()
 
-    leader_speed   = abs(leader_info['speed'])
-    follower_speed = abs(follower_info['speed'])
+    leader_load,   _ = leader_info['load']
+    follower_load, _ = follower_info['load']
+    leader_speed     = abs(leader_info['speed'])
+    follower_speed   = abs(follower_info['speed'])
 
-    # A servo can only be human-driven if its torque is OFF (it's limp).
-    # A servo with torque ON is motor-driven and its speed should not
-    # trigger role reversal — that would cause a feedback loop.
-    leader_pushed   = not leader_info['torque_enabled']   and leader_speed   > SPEED_THRESHOLD
-    follower_pushed = not follower_info['torque_enabled'] and follower_speed > SPEED_THRESHOLD
+    if active is None:
+        # LOCKED: both holding — watch for a push against either servo
+        if leader_load > LOAD_THRESHOLD:
+            leader.disable_torque()    # release so human can move it freely
+            active = 'leader'
+            last_moved = time.time()
 
-    if leader_pushed:
-        # Human is pushing the leader - follower tracks
-        pos = leader_info['position'][0]
-        follower.move_to(pos, speed=leader_speed)
-
-    elif follower_pushed:
-        # Human is pushing the follower - leader tracks
-        pos = follower_info['position'][0]
-        leader.move_to(pos, speed=follower_speed)
-
-    else:
-        # Nobody is pushing - release any settled motorized servo back to limp
-        # so either servo can become the leader on the next push
-        if leader_info['torque_enabled'] and leader_speed < IDLE_THRESHOLD:
-            leader.disable_torque()
-        if follower_info['torque_enabled'] and follower_speed < IDLE_THRESHOLD:
+        elif follower_load > LOAD_THRESHOLD:
             follower.disable_torque()
+            active = 'follower'
+            last_moved = time.time()
 
-# Return both to limp state
+    elif active == 'leader':
+        # Human is moving the leader (limp) — follower mirrors
+        follower.move_to(leader_info['position'][0])
+        if leader_speed > IDLE_SPEED:
+            last_moved = time.time()
+        elif time.time() - last_moved > SETTLE_TIME:
+            # Movement stopped — re-lock both at current positions
+            leader.enable_torque()
+            active = None
+
+    elif active == 'follower':
+        # Human is moving the follower (limp) — leader mirrors
+        leader.move_to(follower_info['position'][0])
+        if follower_speed > IDLE_SPEED:
+            last_moved = time.time()
+        elif time.time() - last_moved > SETTLE_TIME:
+            # Movement stopped — re-lock both at current positions
+            follower.enable_torque()
+            active = None
+
+# Shutdown
 leader.disable_torque()
 follower.disable_torque()
-
 print("Bidirectional teleoperation complete!")
 ```
 
