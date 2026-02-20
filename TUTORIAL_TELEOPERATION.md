@@ -239,27 +239,43 @@ print("Move either servo - the other will follow!")
 
 # Speed threshold to detect intentional movement
 SPEED_THRESHOLD = 50
+# Speed below which a settled motorized servo is released back to limp
+IDLE_THRESHOLD = 20
 
 duration = 30
 start = time.time()
 
 while time.time() - start < duration:
     # Read both servos
-    leader_info = leader.status()
+    leader_info   = leader.status()
     follower_info = follower.status()
 
-    leader_speed = abs(leader_info['speed'])
+    leader_speed   = abs(leader_info['speed'])
     follower_speed = abs(follower_info['speed'])
 
-    if leader_speed > SPEED_THRESHOLD and leader_speed > follower_speed:
-        # Leader is being moved - follower follows
+    # A servo can only be human-driven if its torque is OFF (it's limp).
+    # A servo with torque ON is motor-driven and its speed should not
+    # trigger role reversal — that would cause a feedback loop.
+    leader_pushed   = not leader_info['torque_enabled']   and leader_speed   > SPEED_THRESHOLD
+    follower_pushed = not follower_info['torque_enabled'] and follower_speed > SPEED_THRESHOLD
+
+    if leader_pushed:
+        # Human is pushing the leader - follower tracks
         pos = leader_info['position'][0]
         follower.move_to(pos, speed=leader_speed)
 
-    elif follower_speed > SPEED_THRESHOLD and follower_speed > leader_speed:
-        # Follower is being moved - leader follows
+    elif follower_pushed:
+        # Human is pushing the follower - leader tracks
         pos = follower_info['position'][0]
         leader.move_to(pos, speed=follower_speed)
+
+    else:
+        # Nobody is pushing - release any settled motorized servo back to limp
+        # so either servo can become the leader on the next push
+        if leader_info['torque_enabled'] and leader_speed < IDLE_THRESHOLD:
+            leader.disable_torque()
+        if follower_info['torque_enabled'] and follower_speed < IDLE_THRESHOLD:
+            follower.disable_torque()
 
 # Return both to limp state
 leader.disable_torque()
