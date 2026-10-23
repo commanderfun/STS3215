@@ -42,3 +42,6 @@ ENV/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local verification tracking (not for the public repo)
+VERIFICATION_PROGRESS.md

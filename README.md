@@ -89,6 +89,14 @@ source .venv/bin/activate
 uv pip install pyserial jupyter ftservo-python-sdk
 ```
 
+### Tested Versions
+
+This tutorial was last verified end-to-end in October 2026 with `ftservo-python-sdk` **2.0.1** and `pyserial` **3.5** on macOS. Newer versions should work, but if you hit import errors or odd behavior, pin the known-good version:
+
+```bash
+pip install ftservo-python-sdk==2.0.1
+```
+
 ### ⚠️ Packages to Avoid
 
 - **`feetech-servo-sdk`** - Stripped-down version lacking helper functions. Causes conflicts if installed alongside `ftservo-python-sdk`.

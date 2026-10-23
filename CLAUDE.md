@@ -23,6 +23,7 @@ pip install ftservo-python-sdk
 ## Key Technical Details
 
 - **SDK Import**: `from scservo_sdk import sms_sts, PortHandler`
+- **Verified SDK version**: `ftservo-python-sdk` 2.0.1 (Oct 2026). The only change from 2.0.0 is `PortHandler.clearPort()` using `reset_input_buffer()`.
 - **Default Baud Rate**: 1,000,000 bps (1 Mbps)
 - **Default Servo ID**: 1
 - **Position Range**: 0-4095 (represents 0-360 degrees)
@@ -55,3 +56,4 @@ The `ftservo-python-sdk` package (which imports as `scservo_sdk`) source code is
 - `STS3215_Reference.pdf` - Official servo documentation
 - `Servo-Stand.stl`, `Servo-Paddle.stl` - 3D printable test stand
 - `photos/` - Hardware setup reference images
+- `tests/` - Hardware self-test scripts, one per tutorial part, plus a no-hardware unit test (`python tests/test_unit.py`)
