@@ -82,6 +82,8 @@ You should see two `usbmodem` ports. Note both port names for the next step.
 
 **Tip**: If you're unsure which port is which, unplug one board and run the code again to see which port disappears.
 
+**Only one port showing up?** On a recent Mac, each board must be approved once in the "Allow accessory to connect?" prompt before macOS creates its serial port. If the second board is missing, look for that prompt or replug its USB cable. See the [macOS note in Part 1](./README.md#find-the-serial-port).
+
 ---
 
 ### Step 2: Connect to Both Servos
@@ -189,6 +191,8 @@ print("Done mirroring!")
 
 Try moving the leader servo horn by hand. The follower should track the position in near real-time.
 
+**What to expect**: this loop runs at several hundred iterations per second (each `position()` read and `move_to()` call is about 1 ms), so the loop itself adds no noticeable delay. The follower still trails a moving leader by roughly 0.1 s because of the servo's own response time, and it settles within a few steps of the leader once you stop.
+
 ---
 
 ### Step 6: Teleoperation with Speed Matching
@@ -219,7 +223,7 @@ while time.time() - start < duration:
 print("Teleoperation complete!")
 ```
 
-The follower now matches both the position and speed of the leader, resulting in smoother tracking.
+The follower now matches both the position and speed of the leader, resulting in smoother tracking. Reading the full `status()` dictionary costs about 3 ms, so this loop runs at roughly 200 iterations per second instead of several hundred, which is still far faster than the servo can respond.
 
 ---
 
@@ -256,7 +260,7 @@ for _ in range(50):
     time.sleep(0.1)
 ```
 
-Set `LOAD_THRESHOLD` just above your observed idle floor — typically 3–6% works well.
+Set `LOAD_THRESHOLD` just above your observed idle floor — typically 3–6% works well. On the servos used to verify this tutorial, the idle holding load read a steady 2.4% at every position tried, and a firm finger push read 7–10%, so the default of 3.0 below sits just above the floor. The load value moves in steps of 0.4%, so a threshold of 3.0 trips at the first reading of 3.2% or more.
 
 ```python
 import time

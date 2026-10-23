@@ -180,6 +180,8 @@ for port in ports:
 
 You'll see a few available ports in the output. Look for the port with a prefix like `/dev/cu.usbmodem...` - that's your Waveshare board.
 
+**macOS note**: The first time you plug a board into a recent Mac, macOS shows an "Allow accessory to connect?" prompt. Until you click **Allow**, the board is visible as a USB device but no `/dev/cu.usbmodem*` port is created, and nothing in this tutorial can find it. If a board is missing from the list, look for that prompt (it can hide behind other windows), or unplug and replug the USB cable to trigger it again.
+
 Run a notebook cell to set a variable and save your serial port for use throughout the steps in this tutorial.
 
 ```python

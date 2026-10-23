@@ -93,6 +93,17 @@ def ask_text(prompt, args, default=""):
     return input(f"\n>>> {prompt}: ").strip().lower() or default
 
 
+def ask_yes_no(prompt, args):
+    """Ask a yes/no question; keeps asking until the answer starts with y or n."""
+    if getattr(args, "non_interactive", False):
+        print(f"  (skipped, non-interactive) {prompt}")
+        return None
+    while True:
+        answer = input(f"\n>>> {prompt} [y/n]: ").strip().lower()
+        if answer[:1] in ("y", "n"):
+            return answer.startswith("y")
+
+
 class Checker:
     """Collects PASS/FAIL results and prints a summary."""
 
