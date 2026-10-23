@@ -70,6 +70,31 @@ c.check("90° -> 1024", s.degrees_to_position(90) == 1024)
 c.check("180° -> 2048", s.degrees_to_position(180) == 2048)
 for p in (0, 1, 1023, 2048, 3072, 4095):
     c.check(f"round trip {p}", s.degrees_to_position(s.position_to_degrees(p)) == p)
+c.check("F5: 360° -> 4095 (clamped, no wrap)", s.degrees_to_position(360) == 4095)
+c.check("negative degrees clamp to 0", s.degrees_to_position(-5) == 0)
+
+# --- Argument validation happens before any serial I/O --------------------
+c.section("Argument validation (no I/O)")
+
+
+def raises(exc, fn):
+    try:
+        fn()
+    except exc:
+        return True
+    except Exception:
+        return False
+    return False
+
+
+c.check("move_to(4096) -> ValueError", raises(ValueError, lambda: s.move_to(4096)))
+c.check("move_to(-1) -> ValueError", raises(ValueError, lambda: s.move_to(-1)))
+c.check("move_to(speed=3401) -> ValueError", raises(ValueError, lambda: s.move_to(0, speed=3401)))
+c.check("move_to(acc=255) -> ValueError", raises(ValueError, lambda: s.move_to(0, acc=255)))
+c.check("move_to_degrees(361) -> ValueError", raises(ValueError, lambda: s.move_to_degrees(361)))
+c.check("spin(3401) -> ValueError", raises(ValueError, lambda: s.spin(3401)))
+c.check("set_mode(4) -> ValueError", raises(ValueError, lambda: s.set_mode(4)))
+c.check("set_id(254) -> ValueError", raises(ValueError, lambda: s.set_id(254)))
 
 # --- find_port() filtering --------------------------------------------------
 c.section("find_port() filtering")
@@ -87,6 +112,10 @@ def with_ports(ports):
 
 
 c.check("no ports -> None", with_ports([]) is None)
+two_boards = [FakePort("/dev/cu.usbmodem1", "USB Single Serial"), FakePort("/dev/cu.usbmodem2", "USB Single Serial")]
+with mock.patch("serial.tools.list_ports.comports", return_value=two_boards):
+    c.check("_candidate_ports() lists every board", len(Servo._candidate_ports()) == 2)
+
 c.check("ignores Bluetooth port",
         with_ports([FakePort("/dev/cu.Bluetooth-Incoming-Port", "n/a")]) is None)
 c.check("finds one Waveshare board",

@@ -72,7 +72,7 @@ Expected output:
 
 #### If Auto-Detection Fails
 
-If your port isn't detected automatically, find it manually:
+Auto-detection raises an `IOError` in two cases: no driver board was found, or more than one was found (the error lists the candidate ports). In either case, find the right port manually:
 
 ```python
 from servo import Servo
@@ -200,7 +200,7 @@ s.move_to_degrees(180)  # Move to 180° (center)
 s.move_to_degrees(270)  # Move to 270°
 ```
 
-**Note**: `move_to()` automatically enables torque and sets position mode if needed.
+**Note**: `move_to()` automatically enables torque and switches back to position mode if the servo was in wheel mode. Out-of-range arguments (position outside 0-4095, speed above 3400, acceleration above 254) raise a `ValueError` instead of being sent to the servo.
 
 ---
 
@@ -225,7 +225,12 @@ This is useful when you need to ensure one movement completes before starting an
 ```python
 # Allow 20 steps of error, wait up to 5 seconds
 final_pos = s.move_sync(2048, tolerance=20, timeout=5)
+
+# move_sync() also accepts speed and acc, like move_to()
+final_pos = s.move_sync(1024, speed=500, acc=50)
 ```
+
+If the servo does not reach the target in time, `move_sync()` raises a `TimeoutError`. Calling it with the position the servo is already at returns immediately.
 
 ---
 
@@ -268,6 +273,8 @@ print(f"Current: {current_ma:.1f} mA")
 ```
 
 **Tip**: Try gently pushing against the servo horn while reading these values - you'll see them increase as the servo resists.
+
+The direction returned with the load is the direction the *motor* is applying torque. When you push the horn clockwise, the motor pushes back counter-clockwise, so the reading says `CCW`. While the servo moves under its own power, the direction matches its direction of travel.
 
 #### Continuous Monitoring
 
@@ -374,7 +381,7 @@ s.stop()
 print("Stopped")
 ```
 
-The `spin()` method automatically switches to wheel mode. To return to position mode, just use any move command:
+The `spin()` method automatically switches to wheel mode; the servo turns torque on by itself when it receives a speed. The mode change is not saved to EEPROM, so the servo is back in position mode after a power cycle. To return to position mode in code, just use any move command:
 
 ```python
 # After spinning, return to position mode
@@ -417,7 +424,7 @@ print("✓ Done")
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `ping()` | None | Verify communication, prints status |
+| `ping()` | `int` | Verify communication, prints status, returns model number (777) |
 | `position()` | `(raw, degrees)` | Current position |
 | `speed()` | `int` | Current speed (negative = CCW, positive = CW) |
 | `direction()` | `str` or `None` | Direction: "CW", "CCW", or None if stopped |
@@ -438,16 +445,16 @@ print("✓ Done")
 
 | Method | Description |
 |--------|-------------|
-| `move_to(position, speed=0, acc=0)` | Move to raw position (async) |
-| `move_to_degrees(degrees, speed=0, acc=0)` | Move to degrees (async) |
-| `move_sync(target, tolerance=10, timeout=10)` | Move and wait (sync) |
+| `move_to(position, speed=0, acc=0)` | Move to raw position (async). Raises `ValueError` if out of range |
+| `move_to_degrees(degrees, speed=0, acc=0)` | Move to degrees (async); 360° maps to 4095 |
+| `move_sync(target, tolerance=10, timeout=10, speed=0, acc=0)` | Move and wait (sync). Raises `TimeoutError` |
 | `move_sequence(positions, tolerance=10, timeout=10)` | Run position sequence |
 
 ### Wheel Mode Methods
 
 | Method | Description |
 |--------|-------------|
-| `spin(speed, acc=0)` | Spin continuously (+ = CW, - = CCW) |
+| `spin(speed, acc=0)` | Spin continuously (+ = CW, - = CCW, range ±3400) |
 | `stop()` | Stop spinning |
 
 ### Control Methods
@@ -456,7 +463,7 @@ print("✓ Done")
 |--------|-------------|
 | `enable_torque()` | Enable torque (servo holds position) |
 | `disable_torque()` | Disable torque (servo can be moved by hand) |
-| `set_mode(mode)` | Set operating mode |
+| `set_mode(mode)` | Set operating mode (0-3); not saved across power cycles unless EEPROM is unlocked |
 | `close_bus()` | Close the shared serial bus connection |
 
 ### ID Methods
@@ -471,7 +478,16 @@ print("✓ Done")
 | Method | Description |
 |--------|-------------|
 | `position_to_degrees(position)` | Convert raw position to degrees |
-| `degrees_to_position(degrees)` | Convert degrees to raw position |
+| `degrees_to_position(degrees)` | Convert degrees to raw position (clamped to 0-4095) |
+
+### Low-Level Register Access
+
+| Method | Description |
+|--------|-------------|
+| `read1Byte(address)` / `read2Byte(address)` | Read a register; raises `IOError` on communication failure |
+| `write1Byte(address, value)` / `write2Byte(address, value)` | Write a register; raises `IOError` on communication failure |
+
+Every method that talks to the servo raises `IOError` if the servo does not answer, so a wrong ID or an unplugged cable fails loudly instead of silently.
 
 ### Position Reference
 

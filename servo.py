@@ -13,7 +13,8 @@ Example:
     s.ping()
     s.move_to(2048)  # Move to center position
     pos, deg = s.position()
-    s.disconnect()
+    s.disable_torque()
+    s.close_bus()
 
     # If auto-detection fails, specify port manually:
     Servo.list_ports()  # Show available ports
@@ -21,6 +22,7 @@ Example:
 """
 
 from scservo_sdk import sms_sts, PortHandler
+import serial
 import serial.tools.list_ports
 import time
 
@@ -48,14 +50,14 @@ class Servo:
     ADDR_ID = 5
     ADDR_MIN_ANGLE_LIMIT = 9
     ADDR_MAX_ANGLE_LIMIT = 11
-    DDR_MAX_TEMP_LIMIT = 13
+    ADDR_MAX_TEMP_LIMIT = 13
     ADDR_MAX_VOLTAGE_LIMIT = 14
     ADDR_MIN_VOLTAGE_LIMIT = 15
-    ADDR_LOCK = 55
     ADDR_MODE = 33
     ADDR_TORQUE_ENABLE = 40
     ADDR_ACCELERATION = 41
     ADDR_GOAL_POSITION = 42
+    ADDR_LOCK = 55
     ADDR_PRESENT_POSITION = 56
     ADDR_PRESENT_LOAD = 60
     ADDR_PRESENT_VOLTAGE = 62
@@ -66,6 +68,14 @@ class Servo:
 
     POSITION_MIN = 0
     POSITION_MAX = 4095
+    SPEED_MAX = 3400        # steps/second; 0 means "no limit"
+    ACCELERATION_MAX = 254  # 0 means instant
+
+    # Operating modes (register 33)
+    MODE_POSITION = 0
+    MODE_WHEEL = 1
+    MODE_PWM = 2
+    MODE_STEP = 3
 
     # Error flag bit definitions for servo_status register
     ERROR_FLAGS = {
@@ -99,6 +109,12 @@ class Servo:
         self.servo_id = servo_id
         self.SERIAL_PORT = port if port else self.find_port()
         if not self.SERIAL_PORT:
+            candidates = self._candidate_ports()
+            if len(candidates) > 1:
+                raise IOError(
+                    f"Found more than one servo driver board: {candidates}. "
+                    "Specify which one to use with Servo(port='...')."
+                )
             raise IOError(
                 "Couldn't auto-detect serial port. "
                 "Use Servo.list_ports() to find available ports, "
@@ -106,15 +122,27 @@ class Servo:
             )
         if self.SERIAL_PORT not in Servo._connections:
             handler = PortHandler(self.SERIAL_PORT)
-            if handler.openPort():
-                Servo._connections[self.SERIAL_PORT] = {
-                    "handler": handler,
-                    "servo": sms_sts(handler),
-                }
-            else:
+            try:
+                opened = handler.openPort() and handler.setBaudRate(self.BAUD_RATE)
+            except serial.SerialException as e:
+                raise IOError(f"Failed to open serial port {self.SERIAL_PORT}: {e}") from None
+            if not opened:
                 raise IOError(f"Failed to open serial comm port: {self.SERIAL_PORT}")
+            Servo._connections[self.SERIAL_PORT] = {
+                "handler": handler,
+                "servo": sms_sts(handler),
+            }
         self._port_handler = Servo._connections[self.SERIAL_PORT]["handler"]
         self._servo = Servo._connections[self.SERIAL_PORT]["servo"]
+
+    @staticmethod
+    def _candidate_ports():
+        """Return device paths that look like a Waveshare servo driver board."""
+        return [
+            p.device
+            for p in serial.tools.list_ports.comports()
+            if "serial" in (p.description or "").lower() and "usbmodem" in p.device.lower()
+        ]
 
     def find_port(self):
         """
@@ -124,20 +152,11 @@ class Servo:
         pattern (usbmodem devices with "serial" in description).
 
         Returns:
-            str or None: Device path (e.g., "/dev/cu.usbmodem1101") or None if not found.
+            str or None: Device path (e.g., "/dev/cu.usbmodem1101"), or None if
+                         no board or more than one board is found.
         """
-        ports = serial.tools.list_ports.comports()
-        port = None
-        count = 0
-        for p in ports:
-            if "serial" in p.description.lower() and "usbmodem" in p.device.lower():
-                port = p.device
-                count += 1
-        if count > 1:
-            print("Detected more than one serial port. Please specify the correct port: Servo(port=...)\n")
-            return None
-        else:
-            return port
+        candidates = self._candidate_ports()
+        return candidates[0] if len(candidates) == 1 else None
 
     @staticmethod
     def list_ports():
@@ -162,21 +181,21 @@ class Servo:
 
         Sends a ping command and prints connection status and model number.
 
+        Returns:
+            int: The servo's model number (777 for the STS3215).
+
         Raises:
-            IOError: If communication fails or servo doesn't respond.
+            IOError: If the port is not open or the servo doesn't respond.
         """
-        if self._port_handler.openPort():
-            # Ping the servo to check communication
-            model_number, comm_result, error = self._servo.ping(self.servo_id)
-            if comm_result == 0:  # COMM_SUCCESS
-                print(f"✓ Serial comm port: {self.SERIAL_PORT}")
-                print(f"✓ Successfully pinged servo ID {self.servo_id}")
-                print(f"✓ Model number: {model_number}")
-                # return True
-            else:
-                raise IOError(f"✗ Failed to ping servo_id: {self.servo_id}")
-        else:
-            raise IOError(f"✗ Failed to open serial comm port.")
+        if not self._port_handler.is_open:
+            raise IOError(f"✗ Serial port {self.SERIAL_PORT} is not open. Create a new Servo instance.")
+        model_number, comm_result, error = self._servo.ping(self.servo_id)
+        if comm_result != 0:  # COMM_SUCCESS
+            raise IOError(f"✗ Failed to ping servo_id: {self.servo_id}, comm_result: {comm_result}")
+        print(f"✓ Serial comm port: {self.SERIAL_PORT}")
+        print(f"✓ Successfully pinged servo ID {self.servo_id}")
+        print(f"✓ Model number: {model_number}")
+        return model_number
 
     def position_to_degrees(self, position):
         """
@@ -194,13 +213,26 @@ class Servo:
         """
         Convert degrees to a raw position value.
 
+        The result is clamped to the valid range, so 360° maps to 4095
+        (the last step) rather than wrapping around to 0.
+
         Args:
             degrees: Angle in degrees (0-360).
 
         Returns:
             int: Raw position value (0-4095).
         """
-        return int(degrees * (self.POSITION_MAX + 1) / 360)
+        position = int(round(degrees * (self.POSITION_MAX + 1) / 360))
+        return max(self.POSITION_MIN, min(self.POSITION_MAX, position))
+
+    # --- Low-level register access -------------------------------------------
+
+    def _check(self, comm_result, error, what):
+        """Raise IOError if a read or write failed."""
+        if comm_result != 0:
+            raise IOError(f"✗ Communication failed ({what}) for servo_id: {self.servo_id}, comm_result: {comm_result}")
+        if error != 0:
+            raise IOError(f"Servo {self.servo_id} returned error {error} ({what})")
 
     def read1Byte(self, address):
         """
@@ -216,12 +248,7 @@ class Servo:
             IOError: If communication fails or servo returns an error.
         """
         read_value, comm_result, error = self._servo.read1ByteTxRx(self.servo_id, address)
-        if comm_result != 0:
-            raise IOError(f"✗ Communication failed for servo_id: {self.servo_id}, comm_result: {comm_result}")
-
-        if error != 0:
-            raise IOError(f"Servo {self.servo_id} returned error: {error}")
-
+        self._check(comm_result, error, f"read1 addr {address}")
         return read_value
 
     def read2Byte(self, address):
@@ -238,13 +265,30 @@ class Servo:
             IOError: If communication fails or servo returns an error.
         """
         read_value, comm_result, error = self._servo.read2ByteTxRx(self.servo_id, address)
-        if comm_result != 0:
-            raise IOError(f"✗ Communication failed for servo_id: {self.servo_id}, comm_result: {comm_result}")
-
-        if error != 0:
-            raise IOError(f"Servo {self.servo_id} returned error: {error}")
-
+        self._check(comm_result, error, f"read2 addr {address}")
         return read_value
+
+    def write1Byte(self, address, value):
+        """
+        Write a 1-byte value to a servo register.
+
+        Raises:
+            IOError: If communication fails or servo returns an error.
+        """
+        comm_result, error = self._servo.write1ByteTxRx(self.servo_id, address, value)
+        self._check(comm_result, error, f"write1 addr {address}")
+
+    def write2Byte(self, address, value):
+        """
+        Write a 2-byte value to a servo register.
+
+        Raises:
+            IOError: If communication fails or servo returns an error.
+        """
+        comm_result, error = self._servo.write2ByteTxRx(self.servo_id, address, value)
+        self._check(comm_result, error, f"write2 addr {address}")
+
+    # --- Status --------------------------------------------------------------
 
     def position(self):
         """
@@ -283,18 +327,17 @@ class Servo:
         Read the current movement speed.
 
         The speed value is signed to indicate direction:
-        - Positive values = clockwise (CW) rotation
-        - Negative values = counter-clockwise (CCW) rotation
+        - Positive = clockwise (CW), position increasing
+        - Negative = counter-clockwise (CCW), position decreasing
         - Zero = stationary
+
+        "Clockwise" is as seen looking at the servo horn.
 
         Returns:
             int: Current speed in steps/second (negative = CCW, positive = CW).
         """
         speed, comm_result, error = self._servo.ReadSpeed(self.servo_id)
-        if comm_result != 0:
-            raise IOError(f"Communication failed for servo_id: {self.servo_id}, comm_result: {comm_result}")
-        if error != 0:
-            raise IOError(f"Servo {self.servo_id} returned error: {error}")
+        self._check(comm_result, error, "ReadSpeed")
         return speed
 
     def direction(self):
@@ -347,119 +390,15 @@ class Servo:
         temp = self.read1Byte(self.ADDR_PRESENT_TEMPERATURE)
         return temp
 
-    def enable_torque(self):
-        """Enable torque so the servo holds its position."""
-        self._servo.write1ByteTxRx(self.servo_id, self.ADDR_TORQUE_ENABLE, 1)
-
-    def disable_torque(self):
-        """Disable torque so the servo can be moved by hand."""
-        self._servo.write1ByteTxRx(self.servo_id, self.ADDR_TORQUE_ENABLE, 0)
-
-    def move_to(self, position, speed=0, acc=0):
-        """
-        Move servo to a target position (asynchronous).
-
-        Returns immediately after sending the command. Use move_sync() if you
-        need to wait for the movement to complete.
-
-        Automatically enables torque and sets position mode if needed.
-        Handles switching back from wheel mode by restoring angle limits.
-
-        Args:
-            position: Target position (0-4095, where 2048 is center).
-            speed: Movement speed (0 = max speed, or steps/second).
-            acc: Acceleration (0 = max acceleration).
-        """
-        if self.get_mode() != 0:
-            # Switching from wheel/other mode back to position mode
-            self.set_mode(0)
-            # Restore angle limits (wheel mode sets these to 0)
-            self._servo.write2ByteTxRx(self.servo_id, self.ADDR_MIN_ANGLE_LIMIT, 0)
-            self._servo.write2ByteTxRx(self.servo_id, self.ADDR_MAX_ANGLE_LIMIT, 4095)
-
-        if not self.torque_enabled():
-            self.enable_torque()
-
-        self._servo.WritePosEx(self.servo_id, position, speed, acc)
-
-    def move_to_degrees(self, degrees, speed=0, acc=0):
-        """
-        Move servo to a target position specified in degrees (asynchronous).
-
-        Convenience wrapper around move_to() that accepts degrees instead of
-        raw position values.
-
-        Args:
-            degrees: Target angle (0-360, where 180 is center).
-            speed: Movement speed (0 = max speed, or steps/second).
-            acc: Acceleration (0 = max acceleration).
-        """
-        position = self.degrees_to_position(degrees)
-        self.move_to(position, speed, acc)
-
-    def move_sync(self, target, tolerance=10, timeout=10):
-        """
-        Move servo to a target position and wait until it arrives (synchronous).
-
-        Blocks until the servo reaches the target position within the specified
-        tolerance and stops moving.
-
-        Args:
-            target: Target position (0-4095).
-            tolerance: Acceptable position error in steps (default: 10).
-            timeout: Maximum seconds to wait (default: 10).
-
-        Returns:
-            int: Final position after movement completes.
-
-        Raises:
-            TimeoutError: If servo doesn't start moving or reach target in time.
-        """
-        start = time.perf_counter()
-        position = self.read2Byte(self.ADDR_PRESENT_POSITION)
-        self.move_to(target)
-        # Wait for movement to start
-        while True:
-            if time.perf_counter() - start > timeout:
-                raise TimeoutError("Servo never started moving.")
-
-            moving = self.read1Byte(self.ADDR_MOVING)
-            if moving or abs(position - target) <= tolerance:
-                break
-
-        # Wait for movement to complete
-        while True:
-            if time.perf_counter() - start > timeout:
-                raise TimeoutError("Servo didn't reach target position before timeout.")
-
-            position = self.read2Byte(self.ADDR_PRESENT_POSITION)
-            moving = self.read1Byte(self.ADDR_MOVING)
-
-            if not moving and abs(position - target) <= tolerance:
-                break
-
-        return position
-
-    def move_sequence(self, positions, tolerance=10, timeout=10):
-        """
-        Move through a sequence of positions in order.
-
-        Each position is reached before moving to the next (synchronous).
-
-        Args:
-            positions: List of target positions (0-4095 each).
-            tolerance: Acceptable position error in steps (default: 10).
-            timeout: Maximum seconds to wait per move (default: 10).
-
-        Raises:
-            TimeoutError: If any movement times out.
-        """
-        for target in positions:
-            self.move_sync(target, tolerance, timeout)
-
     def current_load(self):
         """
         Read the current load/torque on the servo.
+
+        The direction is the direction the *motor* is applying torque. When
+        you push the horn by hand while torque is on, the motor pushes back,
+        so the reading is opposite to your push: push clockwise and it reads
+        "CCW". While the servo moves on its own, the direction matches the
+        direction of travel.
 
         Returns:
             tuple: (load_percent, direction) where load_percent is 0-100
@@ -525,6 +464,8 @@ class Servo:
         """
         Get a comprehensive status summary.
 
+        Takes about a dozen serial round trips (roughly 3-4 ms at 1 Mbps).
+
         Returns:
             dict: Dictionary containing all status information:
                 - position: (raw, degrees)
@@ -547,6 +488,7 @@ class Servo:
         """
         pos = self.read2Byte(self.ADDR_PRESENT_POSITION)
         spd = self.speed()
+        status = self.servo_status()
         return {
             "position": (pos, self.position_to_degrees(pos)),
             "speed": spd,
@@ -558,9 +500,134 @@ class Servo:
             "moving": self.moving(),
             "torque_enabled": self.torque_enabled(),
             "mode": self.get_mode(),
-            "errors": self.errors(),
-            "healthy": self.is_healthy(),
+            "errors": [name for bit, name in self.ERROR_FLAGS.items() if status & (1 << bit)],
+            "healthy": status == 0,
         }
+
+    # --- Control -------------------------------------------------------------
+
+    def enable_torque(self):
+        """Enable torque so the servo holds its position."""
+        self.write1Byte(self.ADDR_TORQUE_ENABLE, 1)
+
+    def disable_torque(self):
+        """Disable torque so the servo can be moved by hand."""
+        self.write1Byte(self.ADDR_TORQUE_ENABLE, 0)
+
+    def move_to(self, position, speed=0, acc=0):
+        """
+        Move servo to a target position (asynchronous).
+
+        Returns immediately after sending the command. Use move_sync() if you
+        need to wait for the movement to complete.
+
+        Automatically enables torque and switches back to position mode if the
+        servo is in wheel mode.
+
+        Args:
+            position: Target position (0-4095, where 2048 is center).
+            speed: Movement speed (0 = max speed, or 1-3400 steps/second).
+            acc: Acceleration (0 = instant, 1-254 = smoother ramp).
+
+        Raises:
+            ValueError: If an argument is out of range.
+        """
+        if not self.POSITION_MIN <= position <= self.POSITION_MAX:
+            raise ValueError(f"position must be {self.POSITION_MIN}-{self.POSITION_MAX}, got {position}")
+        if not 0 <= speed <= self.SPEED_MAX:
+            raise ValueError(f"speed must be 0-{self.SPEED_MAX}, got {speed}")
+        if not 0 <= acc <= self.ACCELERATION_MAX:
+            raise ValueError(f"acc must be 0-{self.ACCELERATION_MAX}, got {acc}")
+
+        if self.get_mode() != self.MODE_POSITION:
+            self.set_mode(self.MODE_POSITION)
+
+        if not self.torque_enabled():
+            self.enable_torque()
+
+        comm_result, error = self._servo.WritePosEx(self.servo_id, int(position), int(speed), int(acc))
+        self._check(comm_result, error, "WritePosEx")
+
+    def move_to_degrees(self, degrees, speed=0, acc=0):
+        """
+        Move servo to a target position specified in degrees (asynchronous).
+
+        Convenience wrapper around move_to() that accepts degrees instead of
+        raw position values. 360° is treated as the last step (4095).
+
+        Args:
+            degrees: Target angle (0-360, where 180 is center).
+            speed: Movement speed (0 = max speed, or 1-3400 steps/second).
+            acc: Acceleration (0 = instant, 1-254 = smoother ramp).
+        """
+        if not 0 <= degrees <= 360:
+            raise ValueError(f"degrees must be 0-360, got {degrees}")
+        position = self.degrees_to_position(degrees)
+        self.move_to(position, speed, acc)
+
+    def move_sync(self, target, tolerance=10, timeout=10, speed=0, acc=0):
+        """
+        Move servo to a target position and wait until it arrives (synchronous).
+
+        Blocks until the servo reaches the target position within the specified
+        tolerance and stops moving.
+
+        Args:
+            target: Target position (0-4095).
+            tolerance: Acceptable position error in steps (default: 10).
+            timeout: Maximum seconds to wait (default: 10).
+            speed: Movement speed (0 = max speed, or 1-3400 steps/second).
+            acc: Acceleration (0 = instant, 1-254 = smoother ramp).
+
+        Returns:
+            int: Final position after movement completes.
+
+        Raises:
+            TimeoutError: If servo doesn't start moving or reach target in time.
+        """
+        start = time.perf_counter()
+        self.move_to(target, speed, acc)
+        # Wait for movement to start (or confirm we're already there)
+        while True:
+            if time.perf_counter() - start > timeout:
+                raise TimeoutError("Servo never started moving.")
+
+            position = self.read2Byte(self.ADDR_PRESENT_POSITION)
+            moving = self.read1Byte(self.ADDR_MOVING)
+            if moving or abs(position - target) <= tolerance:
+                break
+            time.sleep(0.005)
+
+        # Wait for movement to complete
+        while True:
+            if time.perf_counter() - start > timeout:
+                raise TimeoutError("Servo didn't reach target position before timeout.")
+
+            position = self.read2Byte(self.ADDR_PRESENT_POSITION)
+            moving = self.read1Byte(self.ADDR_MOVING)
+
+            if not moving and abs(position - target) <= tolerance:
+                break
+            time.sleep(0.005)
+
+        return position
+
+    def move_sequence(self, positions, tolerance=10, timeout=10):
+        """
+        Move through a sequence of positions in order.
+
+        Each position is reached before moving to the next (synchronous).
+
+        Args:
+            positions: List of target positions (0-4095 each).
+            tolerance: Acceptable position error in steps (default: 10).
+            timeout: Maximum seconds to wait per move (default: 10).
+
+        Raises:
+            TimeoutError: If any movement times out.
+        """
+        for target in positions:
+            self.move_sync(target, tolerance, timeout)
 
     def get_mode(self):
         """
@@ -577,23 +644,34 @@ class Servo:
         """
         Set the operating mode.
 
+        The mode register lives in EEPROM, but the servo ships with EEPROM
+        writes locked (register 55 = 1). While locked, the change takes effect
+        immediately but is not saved: the servo returns to position mode after
+        a power cycle. That is usually what you want while experimenting.
+
         Args:
             mode: Mode value (0 = position servo, 1 = wheel/velocity,
                   2 = PWM, 3 = step servo).
+
+        Raises:
+            ValueError: If mode is not 0-3.
         """
-        self._servo.write1ByteTxRx(self.servo_id, self.ADDR_MODE, mode)
+        if mode not in (self.MODE_POSITION, self.MODE_WHEEL, self.MODE_PWM, self.MODE_STEP):
+            raise ValueError(f"mode must be 0-3, got {mode}")
+        self.write1Byte(self.ADDR_MODE, mode)
 
     def spin(self, speed, acc=0):
         """
         Spin the servo continuously in wheel mode.
 
-        Automatically switches to wheel mode if not already in it.
+        Automatically switches to wheel mode if not already in it. Torque is
+        turned on by the servo itself when a speed is written.
         Use stop() or spin(0) to stop, or move_to() to return to position mode.
 
         Args:
-            speed: Spin speed. Positive = CW, negative = CCW, 0 = stop.
-                   Range is approximately -2000 to 2000.
-            acc: Acceleration (0 = instant, higher = smoother ramp).
+            speed: Spin speed in steps/second. Positive = CW, negative = CCW,
+                   0 = stop. Range is -3400 to 3400; 4096 steps is one turn.
+            acc: Acceleration (0 = instant, 1-254 = smoother ramp).
 
         Example:
             s.spin(500)      # Spin clockwise
@@ -601,9 +679,14 @@ class Servo:
             s.stop()         # Stop spinning
             s.move_to(2048)  # Return to position mode
         """
-        if self.get_mode() != 1:
-            self._servo.WheelMode(self.servo_id)
-        self._servo.WriteSpec(self.servo_id, speed, acc)
+        if not -self.SPEED_MAX <= speed <= self.SPEED_MAX:
+            raise ValueError(f"speed must be -{self.SPEED_MAX}..{self.SPEED_MAX}, got {speed}")
+        if not 0 <= acc <= self.ACCELERATION_MAX:
+            raise ValueError(f"acc must be 0-{self.ACCELERATION_MAX}, got {acc}")
+        if self.get_mode() != self.MODE_WHEEL:
+            self.set_mode(self.MODE_WHEEL)
+        comm_result, error = self._servo.WriteSpec(self.servo_id, int(speed), int(acc))
+        self._check(comm_result, error, "WriteSpec")
 
     def stop(self):
         """
@@ -612,7 +695,8 @@ class Servo:
         Equivalent to spin(0). The servo remains in wheel mode.
         Use move_to() to return to position mode.
         """
-        self._servo.WriteSpec(self.servo_id, 0, 0)
+        comm_result, error = self._servo.WriteSpec(self.servo_id, 0, 0)
+        self._check(comm_result, error, "WriteSpec")
 
     def get_id(self):
         """
@@ -651,21 +735,18 @@ class Servo:
         if was_enabled:
             self.disable_torque()
 
-        # Unlock EEPROM before writing
-        self._servo.write1ByteTxRx(self.servo_id, self.ADDR_LOCK, 0)
+        # Unlock EEPROM so the new ID is saved, not just applied in RAM
+        self.write1Byte(self.ADDR_LOCK, 0)
 
-        # Write new ID to EEPROM
-        comm_result, error = self._servo.write1ByteTxRx(self.servo_id, self.ADDR_ID, new_id)
-        if comm_result != 0:
-            self._servo.write1ByteTxRx(self.servo_id, self.ADDR_LOCK, 1)
-            raise IOError(f"Failed to write new ID to servo {self.servo_id}, comm_result: {comm_result}")
-        if error != 0:
-            self._servo.write1ByteTxRx(self.servo_id, self.ADDR_LOCK, 1)
-            raise IOError(f"Servo {self.servo_id} returned error during ID write: {error}")
+        try:
+            self.write1Byte(self.ADDR_ID, new_id)
+        except IOError:
+            self.write1Byte(self.ADDR_LOCK, 1)
+            raise
 
         # Lock EEPROM and update instance to use new ID
-        self._servo.write1ByteTxRx(new_id, self.ADDR_LOCK, 1)
         self.servo_id = new_id
+        self.write1Byte(self.ADDR_LOCK, 1)
 
         # Restore torque state if it was enabled
         if was_enabled:
