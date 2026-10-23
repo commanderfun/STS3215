@@ -43,7 +43,7 @@ A multi-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4
 
 ### Optional Hardware
 
-If you have a 3D printer it's helpful to print the [Servo Test Stand](./photos/Servo-Stand.stl) and [Paddle](./photos/Servo-Paddle.stl). You can mount the servo and driver board in the stand to keep everything supported and organized while testing. The paddle helps you see the servo's rotation while testing.
+If you have a 3D printer it's helpful to print the [Servo Test Stand](./Servo-Stand.stl) and [Paddle](./Servo-Paddle.stl). You can mount the servo and driver board in the stand to keep everything supported and organized while testing. The paddle helps you see the servo's rotation while testing.
 
 ## Photos
 
@@ -414,6 +414,8 @@ print("\nDone!")
 
 **Tip**: While the servo is holding position, try gently pushing against the horn (paddle) with your finger - you should see the load percentage increase as it encounters some resistance.
 
+**About the load direction**: The CW/CCW next to the load is the direction the *motor* is applying torque, not the direction of your push. Push the paddle clockwise and the motor pushes back counter-clockwise, so the reading says CCW. The same convention applies when the servo moves on its own: moving toward higher positions (clockwise) reads CW.
+
 ---
 
 ### Step 7: Read Error Status Codes
@@ -533,6 +535,8 @@ servo.WriteSpec(SERVO_ID, speed, acceleration)
 print(f"✓ Spinning at speed {speed}")
 ```
 
+**Note**: We disabled torque in Step 8 and never re-enabled it, yet the servo spins. Writing a goal (`WriteSpec` or `WritePosEx`) turns torque on automatically; you can confirm by reading register 40 afterward. Positive speed spins the horn clockwise as you look at it from the horn side.
+
 #### Controlling Wheel Mode
 
 ```python
@@ -565,19 +569,12 @@ print("✓ Motor stopped")
 
 ```python
 # Register addresses
-ADDR_MIN_ANGLE_LIMIT = 9
-ADDR_MAX_ANGLE_LIMIT = 11
 ADDR_MODE = 33
 ADDR_TORQUE_ENABLE = 40
 
-# Disable torque to change EEPROM settings
+# Disable torque before changing the mode
 servo.write1ByteTxRx(SERVO_ID, ADDR_TORQUE_ENABLE, 0)
 print("✓ Torque disabled")
-
-# Restore angle limits (0-4095 = full 360° range)
-servo.write2ByteTxRx(SERVO_ID, ADDR_MIN_ANGLE_LIMIT, 0)
-servo.write2ByteTxRx(SERVO_ID, ADDR_MAX_ANGLE_LIMIT, 4095)
-print("✓ Angle limits restored (0-4095)")
 
 # Set mode back to 0 (Position servo mode)
 servo.write1ByteTxRx(SERVO_ID, ADDR_MODE, 0)
@@ -596,11 +593,12 @@ Expected output:
 
 ```
 ✓ Torque disabled
-✓ Angle limits restored (0-4095)
 ✓ Mode set to 0 (position control)
 ✓ Torque enabled
 ✓ Moving to center position (2048)
 ```
+
+**About persistence**: The mode register (33) is an EEPROM register, but the servo ships with EEPROM writes locked (register 55 = 1). While locked, writes like `WheelMode()` take effect immediately yet are not saved: after a power cycle the servo is back in position mode. That is handy while experimenting. If you ever want wheel mode to survive a power cycle, write 0 to register 55 first, change the mode, then write 1 to register 55 to lock it again. On the STS3215 you do not need to touch the angle limit registers (9 and 11) to switch modes; `WheelMode()` leaves them at 0 and 4095.
 
 ---
 

@@ -16,11 +16,11 @@ These values are saved even after power off. Torque must be disabled to write.
 | 6 | Baud Rate | 1 | R/W | 0 | 0=1Mbps, 1=500K, 2=250K, 3=128K, 4=115200, 5=76800, 6=57600, 7=38400 |
 | 7 | Return Delay | 1 | R/W | 0 | Response delay time in microseconds |
 | 8 | Response Level | 1 | R/W | 1 | 0=No response, 1=Respond to read, 2=Respond to all |
-| 9 | Min Angle Limit | 2 | R/W | 0 | Minimum position limit (0-4095); set both to 0 for motor mode |
-| 11 | Max Angle Limit | 2 | R/W | 4095 | Maximum position limit (0-4095); set both to 0 for motor mode |
+| 9 | Min Angle Limit | 2 | R/W | 0 | Minimum position limit (0-4095) |
+| 11 | Max Angle Limit | 2 | R/W | 4095 | Maximum position limit (0-4095) |
 | 13 | Max Temp Limit | 1 | R/W | 70 | Maximum temperature limit in °C |
 | 14 | Max Voltage Limit | 1 | R/W | 140 | Maximum voltage limit (value × 0.1V) |
-| 15 | Min Voltage Limit | 1 | R/W | 50 | Minimum voltage limit (value × 0.1V) |
+| 15 | Min Voltage Limit | 1 | R/W | 40 | Minimum voltage limit (value × 0.1V); 40 = 4.0V as read from a 12V STS3215 |
 | 16 | Max Torque Limit | 2 | R/W | 1000 | Maximum torque output (0-1000 = 0-100%) |
 | 18 | Phase | 1 | R/W | 0 | Motor phase/direction setting |
 | 19 | Unload Condition | 1 | R/W | 0 | Conditions that trigger torque release |
@@ -51,7 +51,7 @@ These values reset on power cycle. Used for real-time control and status.
 | 44 | Goal Time | 2 | R/W | Time to reach goal position in milliseconds |
 | 46 | Goal Speed | 2 | R/W | Speed limit for movement (0=max speed, 1-4095=limited) |
 | 48 | Torque Limit | 2 | R/W | Current torque limit (0-1000 = 0-100%) |
-| 55 | Lock | 1 | R/W | 0=EEPROM unlocked, 1=EEPROM locked (write protected) |
+| 55 | Lock | 1 | R/W | 0=EEPROM unlocked, 1=EEPROM locked (default). While locked, writes to EEPROM addresses still take effect but are not saved across a power cycle |
 | 56 | Present Position | 2 | R | Current actual position (0-4095) |
 | 58 | Present Speed | 2 | R | Current movement speed |
 | 60 | Present Load | 2 | R | Current load/torque (bits 0-9=magnitude, bit 10=direction) |
@@ -73,8 +73,8 @@ These values reset on power cycle. Used for real-time control and status.
 | Read position | 56 | - | Returns current position 0-4095 |
 | Read load | 60 | - | Returns load magnitude and direction |
 | Set acceleration | 41 | 0-254 | 0 = instant, higher = smoother ramp (setting only, no real-time feedback) |
-| Motor mode | 9 & 11 | both 0 | Set min and max angle limits to 0 |
-| Servo mode | 9 & 11 | 0 & 4095 | Restore angle limits for position control |
+| Motor (wheel) mode | 33 | 1 | `WheelMode()` writes this; angle limits are untouched |
+| Servo (position) mode | 33 | 0 | Default; mode reverts to 0 on power cycle unless EEPROM is unlocked (55 = 0) first |
 
 ## Notes
 

@@ -85,6 +85,14 @@ def ask(prompt, args):
     return answer != "s"
 
 
+def ask_text(prompt, args, default=""):
+    """Ask the human a short question; returns default under --non-interactive."""
+    if getattr(args, "non_interactive", False):
+        print(f"  (skipped, non-interactive) {prompt}")
+        return default
+    return input(f"\n>>> {prompt}: ").strip().lower() or default
+
+
 class Checker:
     """Collects PASS/FAIL results and prints a summary."""
 
