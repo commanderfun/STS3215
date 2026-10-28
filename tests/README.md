@@ -18,6 +18,7 @@ Common options:
 - `--port /dev/cu.usbmodemXXXX` picks the board when more than one is connected (auto-detected otherwise).
 - `--id N` targets a servo ID other than 1.
 - `--non-interactive` skips steps that ask you to move or push the servo by hand.
+- `--id2 N` (Part 4 only) sets the second servo's ID (default 2).
 
 Safety: the servo horn moves on its own during these tests. Keep fingers, cables, and loose objects clear.
 Each script leaves the servo with torque disabled and the port closed, even on failure.
