@@ -31,6 +31,8 @@ pip install ftservo-python-sdk
 
 ## Common Register Addresses
 
+Full tables are in `REGISTER_REFERENCE.md`; these are the ones the tutorials use most.
+
 | Register | Address | Size | Description |
 |----------|---------|------|-------------|
 | Torque Enable | 40 | 1 byte | 0=off (limp), 1=on (holding) |
@@ -50,10 +52,13 @@ The `ftservo-python-sdk` package (which imports as `scservo_sdk`) source code is
 
 ## Repository Contents
 
-- `README.md` - Full step-by-step tutorial with Python code examples
-- `TUTORIAL_SERVO_CLASS.md` - Part 2 tutorial using the high-level Servo class
-- `servo.py` - High-level Servo class wrapper
-- `STS3215_Reference.pdf` - Official servo documentation
-- `Servo-Stand.stl`, `Servo-Paddle.stl` - 3D printable test stand
+- `README.md` - Part 1: hardware setup and low-level SDK usage
+- `TUTORIAL_SERVO_CLASS.md` - Part 2: the high-level `Servo` class
+- `TUTORIAL_TELEOPERATION.md` - Part 3: mirroring one servo to another (two boards)
+- `TUTORIAL_DAISY_CHAIN.md` - Part 4: two servos on one board (IDs 1 and 2)
+- `servo.py` - High-level Servo class wrapper; instances on the same port share one connection
+- `REGISTER_REFERENCE.md` - Full register tables; defaults verified against two real units (firmware 3.10)
+- `STS3215_Reference.pdf` - Printable copy of the register reference
+- `Servo-Stand.stl`, `Servo-Paddle.stl`, `Servo-Stand-Dual.stl` - 3D printable single and dual test stands
 - `photos/` - Hardware setup reference images
-- `tests/` - Hardware self-test scripts, one per tutorial part, plus a no-hardware unit test (`python tests/test_unit.py`)
+- `tests/` - Hardware self-test scripts, one per tutorial part, plus a no-hardware unit test (`python tests/test_unit.py`). All four parts were verified on hardware in October 2026 with these scripts.

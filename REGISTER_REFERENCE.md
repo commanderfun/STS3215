@@ -6,6 +6,8 @@ Printable PDF version: [STS3215_Reference.pdf](./STS3215_Reference.pdf)
 
 These values are saved even after power off. Torque must be disabled to write.
 
+The **Default** column is what two factory-fresh 12V STS3215 units (firmware 3.10) reported when read back; both units matched on every register. Your unit or firmware may differ, so read the register before relying on a default.
+
 | Addr | Name | Size | R/W | Default | Description |
 |------|------|------|-----|---------|-------------|
 | 0 | Firmware Major | 1 | R | - | Major firmware version number |
@@ -20,20 +22,20 @@ These values are saved even after power off. Torque must be disabled to write.
 | 11 | Max Angle Limit | 2 | R/W | 4095 | Maximum position limit (0-4095) |
 | 13 | Max Temp Limit | 1 | R/W | 70 | Maximum temperature limit in °C |
 | 14 | Max Voltage Limit | 1 | R/W | 140 | Maximum voltage limit (value × 0.1V) |
-| 15 | Min Voltage Limit | 1 | R/W | 40 | Minimum voltage limit (value × 0.1V); 40 = 4.0V as read from a 12V STS3215 |
+| 15 | Min Voltage Limit | 1 | R/W | 40 | Minimum voltage limit (value × 0.1V); 40 = 4.0V |
 | 16 | Max Torque Limit | 2 | R/W | 1000 | Maximum torque output (0-1000 = 0-100%) |
-| 18 | Phase | 1 | R/W | 0 | Motor phase/direction setting |
-| 19 | Unload Condition | 1 | R/W | 0 | Conditions that trigger torque release |
-| 20 | LED Alarm | 1 | R/W | 0 | LED blink conditions for alarms (bitmask) |
+| 18 | Phase | 1 | R/W | 12 | Motor phase/direction setting (factory value; do not change) |
+| 19 | Unload Condition | 1 | R/W | 44 | Conditions that release torque; same bits as Servo Status. 44 = temperature, current, overload |
+| 20 | LED Alarm | 1 | R/W | 47 | Conditions that blink the LED; same bits as Servo Status. 47 = voltage, sensor, temperature, current, overload |
 | 21 | P Coefficient | 1 | R/W | 32 | PID proportional gain |
 | 22 | D Coefficient | 1 | R/W | 32 | PID derivative gain |
 | 23 | I Coefficient | 1 | R/W | 0 | PID integral gain |
-| 24 | Min Startup Force | 2 | R/W | 0 | Minimum torque to start moving (0-1000) |
+| 24 | Min Startup Force | 2 | R/W | 16 | Minimum torque to start moving (0-1000) |
 | 26 | CW Dead Zone | 1 | R/W | 1 | Clockwise dead zone width |
 | 27 | CCW Dead Zone | 1 | R/W | 1 | Counter-clockwise dead zone width |
-| 28 | Protection Current | 2 | R/W | 0 | Overcurrent protection threshold (×6.5mA) |
+| 28 | Protection Current | 2 | R/W | 310 | Overcurrent protection threshold (×6.5mA); 310 ≈ 2.0 A |
 | 30 | Angular Resolution | 1 | R/W | 1 | Position resolution multiplier |
-| 31 | Position Offset | 2 | R/W | 0 | Position offset calibration value |
+| 31 | Position Offset | 2 | R/W | 85 | Position offset calibration value (both test units read 85) |
 | 33 | Mode | 1 | R/W | 0 | 0=Position, 1=Constant speed, 2=PWM, 3=Step servo |
 | 34 | Protection Torque | 1 | R/W | 20 | Torque during overload protection (%) |
 | 35 | Protection Time | 1 | R/W | 200 | Time before overload protection triggers |
@@ -58,7 +60,7 @@ These values reset on power cycle. Used for real-time control and status.
 | 62 | Present Voltage | 1 | R | Current voltage (value × 0.1V) |
 | 63 | Present Temperature | 1 | R | Current temperature in °C |
 | 64 | Async Write Flag | 1 | R | Status of asynchronous write operation |
-| 65 | Servo Status | 1 | R | Error status bitmask (voltage, temp, overload, etc.) |
+| 65 | Servo Status | 1 | R | Error bitmask: bit 0 voltage, 1 sensor, 2 temperature, 3 current, 5 overload |
 | 66 | Moving | 1 | R | 1=Servo is currently moving, 0=Stationary |
 | 69 | Present Current | 2 | R | Current draw (value × 6.5mA) |
 

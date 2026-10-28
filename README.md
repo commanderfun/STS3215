@@ -30,6 +30,9 @@ A multi-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4
   - [Step 11: Clean Shutdown](#step-11-clean-shutdown)
 - [Quick Reference](#quick-reference)
 - [Part 2: Using the Servo Class](./TUTORIAL_SERVO_CLASS.md)
+- [Part 3: Teleoperation](./TUTORIAL_TELEOPERATION.md)
+- [Part 4: Daisy Chain](./TUTORIAL_DAISY_CHAIN.md)
+- [Self-test scripts](./tests/README.md)
 
 ---
 
@@ -96,6 +99,8 @@ This tutorial was last verified end-to-end in October 2026 with `ftservo-python-
 ```bash
 pip install ftservo-python-sdk==2.0.1
 ```
+
+The scripts in [`tests/`](./tests/README.md) are the checks used for that verification. Run them to confirm your own setup, one script per tutorial part.
 
 ### ⚠️ Packages to Avoid
 
