@@ -40,9 +40,11 @@ A multi-part tutorial for controlling the Feetech STS3215 servo (12V-30kg or 7.4
 
 - Feetech STS3215 servo (12V 30kg torque model) or (7.4V 19kg torque model)
 - Waveshare Serial Bus Servo Driver Board
-- 12V power supply (at least 2A recommended) or 7.4V power supply
+- 12V power supply (at least 2A recommended) or 7.4V power supply, matching your servo model (see below)
 - USB-C cable
 - Mac or PC computer
+
+> **Match the power supply to your servo model.** The driver board does not step the voltage down: whatever you plug into its DC jack is what the servo receives (Waveshare: the board "can directly power the servos via DC power jack"). Use a 12V supply with the 12V 30kg STS3215 and a 7.4V supply with the 7.4V 19kg STS3215. Never power the 7.4V model from 12V. The board is marked 9–12.6V, but Waveshare states that figure is for ST series servos and the board also accepts the lower voltages of SC series servos, so a 7.4V supply is fine. This tutorial was verified with the 12V model; the 7.4V pairing follows [Waveshare's](https://www.waveshare.com/wiki/Bus_Servo_Adapter_(A)) and Feetech's specifications.
 
 ### Optional Hardware
 
@@ -161,7 +163,7 @@ sms_sts methods available:
 
 1. **Connect the servo to the driver board**: Plug the STS3215 servo's 4-pin cable into one of the two input connectors on the servo and the other end to one of the servo ports on the Waveshare Servo Driver Board. I used the connector on the top-left of the board. See photos above.
 
-2. **Power the driver board**: Connect your 12V or 7.4V power supply to the driver board's power input.
+2. **Power the driver board**: Connect the power supply that matches your servo model (see [Hardware Requirements](#hardware-requirements)) to the driver board's power input.
 
 3. **Connect to your computer**: Use a USB cable to connect the Waveshare board to your computer. I used a USB-C to USB-C cable. Depending on your computer you may need a USB-C to USB-A cable.
 
